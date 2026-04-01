@@ -29,8 +29,17 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
       }
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to load dashboard");
+        const text = await res.text();
+        let message = "Failed to load dashboard";
+        try {
+          const err = JSON.parse(text);
+          message = err.details
+            ? `${err.error || "Error"}: ${err.details}`
+            : err.error || message;
+        } catch {
+          message = text?.slice(0, 300) || `HTTP ${res.status}`;
+        }
+        throw new Error(message);
       }
 
       const result = await res.json();
