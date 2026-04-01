@@ -3,7 +3,7 @@ import {
   getPartnerContacts,
   getPartnerDeals,
   getCallEngagements,
-  getPartnerSearches,
+  getSearchNamesFromContacts,
   computeMetrics,
 } from "@/lib/hubspot";
 
@@ -21,17 +21,32 @@ export async function GET(request) {
     return Response.json({ error: "Invalid or expired token" }, { status: 401 });
   }
 
+  if (!process.env.HUBSPOT_ACCESS_TOKEN) {
+    return Response.json(
+      {
+        error: "Failed to load dashboard data",
+        details:
+          "HUBSPOT_ACCESS_TOKEN is not set. Add it in Vercel Project → Settings → Environment Variables.",
+      },
+      { status: 500 }
+    );
+  }
+
   const { partner, label } = payload;
+  if (!partner || typeof partner !== "string") {
+    return Response.json(
+      { error: "Invalid session", details: "Missing partner in token. Sign out and sign in again." },
+      { status: 401 }
+    );
+  }
   const { searchParams } = new URL(request.url);
   const searchFilter = searchParams.get("search") || null;
 
   try {
-    // Fetch all data in parallel
-    const [contacts, deals, searches] = await Promise.all([
-      getPartnerContacts(partner),
-      getPartnerDeals(partner),
-      getPartnerSearches(partner),
-    ]);
+    // Contacts + deals only (do not call getPartnerSearches — it duplicates contact search and spikes rate limits)
+    const contacts = await getPartnerContacts(partner);
+    const searches = getSearchNamesFromContacts(contacts);
+    const deals = await getPartnerDeals(partner);
 
     // Get call data for partner's contacts
     const contactIds = contacts.map((c) => c.id);
