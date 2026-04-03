@@ -208,9 +208,9 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
               </div>
             </div>
             <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
-              <div className="kpi-label">Meetings from calls</div>
-              <div className="kpi-value sm" style={{ color: "var(--amber)" }}>
-                {metrics.qualCallsHeld}
+              <div className="kpi-label">Interested from calls</div>
+              <div className="kpi-value sm" style={{ color: "var(--green)" }}>
+                {metrics.interestedFromCalls}
               </div>
             </div>
           </div>
