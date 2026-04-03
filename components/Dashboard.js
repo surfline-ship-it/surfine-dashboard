@@ -88,8 +88,9 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
   });
 
   const stageClass = (stage) => {
-    if (stage.includes("Intro")) return "intro";
+    if (stage.includes("Intro") || stage.includes("Partner Discussions")) return "intro";
     if (stage.includes("Prequalification") || stage.includes("Teaser")) return "qual";
+    if (stage.includes("Closed Won")) return "intro";
     return "interested";
   };
 
