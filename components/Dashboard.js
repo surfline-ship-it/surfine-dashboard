@@ -141,7 +141,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
 
       {/* Pipeline at a glance */}
       <div className="section-label">Pipeline at a glance</div>
-      <div className="kpi-grid kpi-grid-4">
+      <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(5, 1fr)" }}>
         <div className="kpi">
           <div className="kpi-label">Unique companies in pipeline</div>
           <div className="kpi-value" style={{ color: "var(--blue)" }}>
@@ -154,20 +154,28 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
           <div className="kpi-value" style={{ color: "var(--green)" }}>
             {metrics.interestedReplies}
           </div>
-          <div className="kpi-sub">Positive responses only</div>
+          <div className="kpi-sub">Email + call interest</div>
         </div>
         <div className="kpi">
-          <div className="kpi-label">Qualification calls held</div>
+          <div className="kpi-label">Total active deals</div>
           <div className="kpi-value" style={{ color: "var(--amber)" }}>
-            {metrics.qualCallsHeld}
+            {metrics.totalActiveDeals}
           </div>
-          <div className="kpi-sub">Includes revenue-disqualified</div>
+          <div className="kpi-sub">Open pipeline only</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label">Teasers sent</div>
+          <div className="kpi-value" style={{ color: "var(--amber)" }}>
+            {metrics.teasersSent}
+          </div>
+          <div className="kpi-sub">All-time</div>
         </div>
         <div className="kpi">
           <div className="kpi-label">Introductions made</div>
           <div className="kpi-value" style={{ color: "var(--purple)" }}>
             {metrics.introductionsMade}
           </div>
+          <div className="kpi-sub">All-time</div>
         </div>
       </div>
 

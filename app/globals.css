@@ -349,6 +349,7 @@ body {
 /* Responsive */
 @media (max-width: 768px) {
   .kpi-grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .kpi-grid[style*="repeat(5"] { grid-template-columns: repeat(2, 1fr) !important; }
   .card-row { grid-template-columns: 1fr; }
   .dash-header { flex-direction: column; gap: 8px; }
   .dash-header-right { text-align: left; }
