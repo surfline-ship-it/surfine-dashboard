@@ -9,15 +9,20 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchFilter, setSearchFilter] = useState(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
-  const fetchDashboard = useCallback(async (search) => {
+  const fetchDashboard = useCallback(async (search, start, end) => {
     setLoading(true);
     setError(null);
 
     try {
-      const url = search
-        ? `/api/dashboard?search=${encodeURIComponent(search)}`
-        : "/api/dashboard";
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (start) params.set("start", start);
+      if (end) params.set("end", end);
+      const query = params.toString();
+      const url = query ? `/api/dashboard?${query}` : "/api/dashboard";
 
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
@@ -52,8 +57,8 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
   }, [token, onLogout]);
 
   useEffect(() => {
-    fetchDashboard(searchFilter);
-  }, [fetchDashboard, searchFilter]);
+    fetchDashboard(searchFilter, startDate, endDate);
+  }, [fetchDashboard, searchFilter, startDate, endDate]);
 
   if (loading && !data) {
     return (
@@ -68,7 +73,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
     return (
       <div className="loading" style={{ flexDirection: "column", gap: 8 }}>
         <div style={{ color: "var(--red)" }}>Error: {error}</div>
-        <button onClick={() => fetchDashboard(searchFilter)} style={{
+        <button onClick={() => fetchDashboard(searchFilter, startDate, endDate)} style={{
           padding: "8px 16px", border: "1px solid var(--gray-200)",
           borderRadius: "var(--radius)", background: "#fff", cursor: "pointer",
           fontSize: 13
@@ -81,11 +86,12 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
 
   if (!data) return null;
 
-  const { metrics, searches, partner, generatedAt } = data;
+  const { metrics, searches, partner, generatedAt, dateFilter } = data;
   const genDate = new Date(generatedAt);
   const dateStr = genDate.toLocaleDateString("en-US", {
     month: "long", day: "numeric", year: "numeric",
   });
+  const hasDateFilter = Boolean(dateFilter?.start || dateFilter?.end);
 
   const stageClass = (stage) => {
     if (stage.includes("Intro") || stage.includes("Partner Discussions")) return "intro";
@@ -125,6 +131,44 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
           )}
           {searches.length === 1 && (
             <div style={{ marginTop: 4, fontSize: 12 }}>Search: {searches[0]}</div>
+          )}
+          <div style={{ marginTop: 8, display: "flex", gap: 6, alignItems: "center", justifyContent: "flex-end" }}>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              style={{ fontSize: 12, padding: "4px 6px", border: "1px solid var(--gray-200)", borderRadius: 6 }}
+            />
+            <span style={{ fontSize: 12, color: "var(--gray-500)" }}>to</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              style={{ fontSize: 12, padding: "4px 6px", border: "1px solid var(--gray-200)", borderRadius: 6 }}
+            />
+            {(startDate || endDate) && (
+              <button
+                onClick={() => {
+                  setStartDate("");
+                  setEndDate("");
+                }}
+                style={{
+                  fontSize: 11,
+                  padding: "4px 8px",
+                  border: "1px solid var(--gray-200)",
+                  borderRadius: 6,
+                  background: "#fff",
+                  cursor: "pointer",
+                }}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          {hasDateFilter && (
+            <div style={{ marginTop: 4, fontSize: 11 }}>
+              Filtered: {dateFilter?.start || "Any"} to {dateFilter?.end || "Any"}
+            </div>
           )}
         </div>
       </div>

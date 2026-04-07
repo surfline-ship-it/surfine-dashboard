@@ -41,6 +41,8 @@ export async function GET(request) {
   }
   const { searchParams } = new URL(request.url);
   const searchFilter = searchParams.get("search") || null;
+  const startDate = searchParams.get("start") || null;
+  const endDate = searchParams.get("end") || null;
 
   try {
     // Contacts + deals only (do not call getPartnerSearches — it duplicates contact search and spikes rate limits)
@@ -64,13 +66,17 @@ export async function GET(request) {
     }
 
     // Compute metrics
-    const metrics = computeMetrics(contacts, deals, callData, searchFilter);
+    const metrics = computeMetrics(contacts, deals, callData, searchFilter, {
+      start: startDate,
+      end: endDate,
+    });
 
     return Response.json({
       partner: label,
       partnerKey: partner,
       searches,
       searchFilter,
+      dateFilter: { start: startDate, end: endDate },
       metrics,
       generatedAt: new Date().toISOString(),
     });
