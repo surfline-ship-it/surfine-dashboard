@@ -94,9 +94,9 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
   const hasDateFilter = Boolean(dateFilter?.start || dateFilter?.end);
 
   const stageClass = (stage) => {
-    if (stage.includes("Intro") || stage.includes("Partner Discussions")) return "intro";
-    if (stage.includes("Prequalification") || stage.includes("Teaser")) return "qual";
-    if (stage.includes("Closed Won")) return "intro";
+    if (stage.includes("Intro") || stage.includes("Partner Discussions") || stage.includes("Closed Won")) return "intro";
+    if (stage.includes("Teaser")) return "qual";
+    if (stage.includes("Pre-Qual") || stage.includes("Prequalification") || stage.includes("Research") || stage.includes("Partner Identified")) return "interested";
     return "interested";
   };
 
