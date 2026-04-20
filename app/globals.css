@@ -296,6 +296,7 @@ body {
 .status-badge.qual { background: var(--blue-light); color: var(--blue); }
 .status-badge.teaser { background: var(--amber-light); color: var(--amber); }
 .status-badge.interested { background: var(--green-light); color: var(--green); }
+.status-badge.early { background: var(--gray-100); color: var(--gray-600); }
 
 /* Footer */
 .dash-footer {

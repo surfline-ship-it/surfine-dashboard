@@ -97,6 +97,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
     if (stage.includes("Intro") || stage.includes("Partner Discussions") || stage.includes("Closed Won")) return "intro";
     if (stage.includes("Teaser")) return "qual";
     if (stage.includes("Pre-Qual") || stage.includes("Prequalification") || stage.includes("Research") || stage.includes("Partner Identified")) return "interested";
+    if (stage.includes("Re-Engage") || stage.includes("Deferred")) return "early";
     return "interested";
   };
 
