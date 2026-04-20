@@ -14,11 +14,12 @@ export async function POST(request) {
     return Response.json({ error: "Invalid password" }, { status: 401 });
   }
 
-  const token = await createToken(match.partner, match.label);
+  const token = await createToken(match.partner, match.label, match.search);
 
   return Response.json({
     token,
     partner: match.partner,
     label: match.label,
+    ...(match.search && { search: match.search }),
   });
 }

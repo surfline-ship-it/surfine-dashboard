@@ -56,9 +56,12 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
     }
   }, [token, onLogout]);
 
+  const searchLocked = Boolean(partnerInfo?.search);
+
   useEffect(() => {
-    fetchDashboard(searchFilter, startDate, endDate);
-  }, [fetchDashboard, searchFilter, startDate, endDate]);
+    const apiSearch = searchLocked ? null : searchFilter;
+    fetchDashboard(apiSearch, startDate, endDate);
+  }, [fetchDashboard, searchLocked, searchFilter, startDate, endDate]);
 
   if (loading && !data) {
     return (
@@ -73,7 +76,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
     return (
       <div className="loading" style={{ flexDirection: "column", gap: 8 }}>
         <div style={{ color: "var(--red)" }}>Error: {error}</div>
-        <button onClick={() => fetchDashboard(searchFilter, startDate, endDate)} style={{
+        <button onClick={() => fetchDashboard(searchLocked ? null : searchFilter, startDate, endDate)} style={{
           padding: "8px 16px", border: "1px solid var(--gray-200)",
           borderRadius: "var(--radius)", background: "#fff", cursor: "pointer",
           fontSize: 13
@@ -111,7 +114,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
         </div>
         <div className="dash-header-right">
           <div>Data as of {dateStr}</div>
-          {searches.length > 1 && (
+          {!searchLocked && searches.length > 1 && (
             <div className="pills">
               <span
                 className={`pill ${!searchFilter ? "active" : ""}`}
@@ -130,7 +133,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
               ))}
             </div>
           )}
-          {searches.length === 1 && (
+          {!searchLocked && searches.length === 1 && (
             <div style={{ marginTop: 4, fontSize: 12 }}>Search: {searches[0]}</div>
           )}
           <div style={{ marginTop: 8, display: "flex", gap: 6, alignItems: "center", justifyContent: "flex-end" }}>

@@ -32,7 +32,7 @@ export async function GET(request) {
     );
   }
 
-  const { partner, label } = payload;
+  const { partner, label, search: jwtSearch } = payload;
   if (!partner || typeof partner !== "string") {
     return Response.json(
       { error: "Invalid session", details: "Missing partner in token. Sign out and sign in again." },
@@ -40,15 +40,20 @@ export async function GET(request) {
     );
   }
   const { searchParams } = new URL(request.url);
-  const searchFilter = searchParams.get("search") || null;
+  const searchFromJwt =
+    typeof jwtSearch === "string" && jwtSearch.trim() !== "" ? jwtSearch.trim() : null;
+  const searchFromQuery = searchParams.get("search");
+  // Search-level JWT locks to one search; query param is ignored when JWT has search
+  const searchFilter = searchFromJwt ?? (searchFromQuery || null);
+  const searchLocked = Boolean(searchFromJwt);
   const startDate = searchParams.get("start") || null;
   const endDate = searchParams.get("end") || null;
 
   try {
     // Contacts + deals only (do not call getPartnerSearches — it duplicates contact search and spikes rate limits)
-    const contacts = await getPartnerContacts(partner);
+    const contacts = await getPartnerContacts(partner, searchFilter || undefined);
     const searches = getSearchNamesFromContacts(contacts);
-    const deals = await getPartnerDeals(partner);
+    const deals = await getPartnerDeals(partner, searchFilter || undefined);
 
     // Get call data for partner's contacts
     const contactIds = contacts.map((c) => c.id);
@@ -76,6 +81,7 @@ export async function GET(request) {
       partnerKey: partner,
       searches,
       searchFilter,
+      searchLocked,
       dateFilter: { start: startDate, end: endDate },
       metrics,
       generatedAt: new Date().toISOString(),

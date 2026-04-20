@@ -17,7 +17,11 @@ export default function Home() {
       try {
         const parsed = JSON.parse(saved);
         setToken(parsed.token);
-        setPartnerInfo({ partner: parsed.partner, label: parsed.label });
+        setPartnerInfo({
+          partner: parsed.partner,
+          label: parsed.label,
+          ...(parsed.search && { search: parsed.search }),
+        });
       } catch {}
     }
   }, []);
@@ -42,8 +46,17 @@ export default function Home() {
       }
 
       setToken(data.token);
-      setPartnerInfo({ partner: data.partner, label: data.label });
-      sessionStorage.setItem("surfline_session", JSON.stringify(data));
+      setPartnerInfo({
+        partner: data.partner,
+        label: data.label,
+        ...(data.search && { search: data.search }),
+      });
+      sessionStorage.setItem("surfline_session", JSON.stringify({
+        token: data.token,
+        partner: data.partner,
+        label: data.label,
+        ...(data.search && { search: data.search }),
+      }));
     } catch (err) {
       setError("Connection error. Please try again.");
     } finally {
