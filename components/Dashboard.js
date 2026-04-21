@@ -96,14 +96,6 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
   });
   const hasDateFilter = Boolean(dateFilter?.start || dateFilter?.end);
 
-  const stageClass = (stage) => {
-    if (stage.includes("Intro") || stage.includes("Partner Discussions") || stage.includes("Closed Won")) return "intro";
-    if (stage.includes("Teaser")) return "qual";
-    if (stage.includes("Pre-Qual") || stage.includes("Prequalification") || stage.includes("Research") || stage.includes("Partner Identified")) return "interested";
-    if (stage.includes("Re-Engage") || stage.includes("Deferred")) return "early";
-    return "interested";
-  };
-
   return (
     <div className="dashboard">
       {/* Header */}
@@ -187,43 +179,29 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
         </div>
       )}
 
-      {/* Pipeline at a glance */}
-      <div className="section-label">Pipeline at a glance</div>
-      <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(5, 1fr)" }}>
-        <div className="kpi">
-          <div className="kpi-label">Unique companies in pipeline</div>
-          <div className="kpi-value" style={{ color: "var(--blue)" }}>
-            {metrics.uniqueCompaniesInPipeline.toLocaleString()}
-          </div>
-          <div className="kpi-sub">Deduplicated across all lists</div>
-        </div>
-        <div className="kpi">
-          <div className="kpi-label">Interested replies</div>
-          <div className="kpi-value" style={{ color: "var(--green)" }}>
-            {metrics.interestedReplies}
-          </div>
-          <div className="kpi-sub">Email + call interest</div>
-        </div>
-        <div className="kpi">
-          <div className="kpi-label">Total active deals</div>
-          <div className="kpi-value" style={{ color: "var(--amber)" }}>
-            {metrics.totalActiveDeals}
-          </div>
-          <div className="kpi-sub">Open pipeline only</div>
-        </div>
+      {/* Deal pipeline — headline milestones */}
+      <div className="section-label">Deal pipeline</div>
+      <div className="kpi-grid kpi-grid-deal-milestones">
         <div className="kpi">
           <div className="kpi-label">Teasers sent</div>
           <div className="kpi-value" style={{ color: "var(--amber)" }}>
-            {metrics.teasersSent}
+            {metrics.teasersSent.toLocaleString()}
           </div>
-          <div className="kpi-sub">All-time</div>
+          <div className="kpi-sub">Stage ≥ Teaser Sent, teaser_sent flag, or passed after teaser</div>
         </div>
         <div className="kpi">
           <div className="kpi-label">Introductions made</div>
           <div className="kpi-value" style={{ color: "var(--purple)" }}>
-            {metrics.introductionsMade}
+            {metrics.introductionsMade.toLocaleString()}
           </div>
-          <div className="kpi-sub">All-time</div>
+          <div className="kpi-sub">Intro held+, intro completed, or passed after intro</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label">Total active deals</div>
+          <div className="kpi-value" style={{ color: "var(--green)" }}>
+            {metrics.totalActiveDeals.toLocaleString()}
+          </div>
+          <div className="kpi-sub">Intro Meeting Held, Partner Discussions, or Closed Won</div>
         </div>
       </div>
 
@@ -231,7 +209,13 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
       <div className="card-row">
         <div className="card">
           <div className="card-title">Email outreach</div>
-          <div className="kpi-grid kpi-grid-3" style={{ marginBottom: 14 }}>
+          <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 14 }}>
+            <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
+              <div className="kpi-label">Unique companies in pipeline</div>
+              <div className="kpi-value sm" style={{ color: "var(--blue)" }}>
+                {metrics.uniqueCompaniesInPipeline.toLocaleString()}
+              </div>
+            </div>
             <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
               <div className="kpi-label">Unique companies emailed</div>
               <div className="kpi-value sm">{metrics.uniqueCompaniesEmailed.toLocaleString()}</div>
@@ -277,51 +261,42 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
         </div>
       </div>
 
-      {/* Pipeline detail */}
-      {metrics.pipelineDeals.length > 0 && (
-        <>
-          <div className="section-label">Pipeline progression</div>
-          <div className="pipeline-card">
-            <table className="pipeline-table">
-              <thead>
-                <tr>
-                  <th>Company</th>
-                  <th>Search</th>
-                  <th>Stage</th>
-                  <th>Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {metrics.pipelineDeals.map((deal) => (
-                  <tr key={deal.id}>
-                    <td className="company">{deal.name}</td>
-                    <td className="muted">{deal.search}</td>
-                    <td>
-                      <span className={`status-badge ${stageClass(deal.stage)}`}>
-                        {deal.stage}
+      {/* Pipeline progression — grouped by stage */}
+      <div className="section-label">Pipeline progression</div>
+      <div className="pipeline-card pipeline-progression">
+        {(metrics.pipelineProgression || []).map((row) => (
+          <div key={row.stageId} className={`pipeline-stage-block ${row.rowClass}`}>
+            <div className="pipeline-stage-header">
+              <span className="pipeline-stage-title">{row.label}</span>
+              <span className="pipeline-stage-count">{row.count}</span>
+            </div>
+            {row.deals.length > 0 && (
+              <ul className="pipeline-deal-list">
+                {row.deals.map((d) => (
+                  <li key={d.id} className="pipeline-deal-item">
+                    {row.stageId === "3253863103" ? (
+                      <details className="pipeline-passed-details">
+                        <summary>{d.name}</summary>
+                        {d.partnerPassedStage ? (
+                          <div className="pipeline-deal-meta">Partner passed stage: {d.partnerPassedStage}</div>
+                        ) : null}
+                        {d.passedReason ? (
+                          <div className="pipeline-deal-meta">Reason: {d.passedReason}</div>
+                        ) : null}
+                      </details>
+                    ) : (
+                      <span>
+                        <span className="pipeline-deal-name">{d.name}</span>
+                        {d.search ? <span className="muted"> · {d.search}</span> : null}
                       </span>
-                    </td>
-                    <td className="muted">
-                      {deal.created
-                        ? new Date(deal.created).toLocaleDateString("en-US", {
-                            month: "short", day: "numeric",
-                          })
-                        : "—"}
-                    </td>
-                  </tr>
+                    )}
+                  </li>
                 ))}
-              </tbody>
-            </table>
+              </ul>
+            )}
           </div>
-        </>
-      )}
-
-      {metrics.pipelineDeals.length === 0 && (
-        <div className="empty-state" style={{ marginTop: "1rem" }}>
-          <h3>No active deals yet</h3>
-          <p>Deals will appear here as prospects move through the pipeline.</p>
-        </div>
-      )}
+        ))}
+      </div>
 
       {/* Footer */}
       <div className="dash-footer">
