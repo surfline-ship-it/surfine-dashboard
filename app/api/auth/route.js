@@ -2,13 +2,14 @@ import { createToken, getCredentials } from "@/lib/auth";
 
 export async function POST(request) {
   const { password } = await request.json();
+  const normalizedPassword = typeof password === "string" ? password.trim() : "";
 
-  if (!password) {
+  if (!normalizedPassword) {
     return Response.json({ error: "Password required" }, { status: 400 });
   }
 
   const credentials = getCredentials();
-  const match = credentials[password];
+  const match = credentials[normalizedPassword];
 
   if (!match) {
     return Response.json({ error: "Invalid password" }, { status: 401 });
