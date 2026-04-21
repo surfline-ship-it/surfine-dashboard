@@ -1,15 +1,26 @@
 import { createToken, getCredentials } from "@/lib/auth";
 
+function normalizeAccessCode(value) {
+  return String(value || "")
+    .normalize("NFKC")
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .trim()
+    .toLowerCase();
+}
+
 export async function POST(request) {
   const { password } = await request.json();
-  const normalizedPassword = typeof password === "string" ? password.trim() : "";
+  const normalizedPassword = normalizeAccessCode(password);
 
   if (!normalizedPassword) {
     return Response.json({ error: "Password required" }, { status: 400 });
   }
 
   const credentials = getCredentials();
-  const match = credentials[normalizedPassword];
+  const normalizedCredentials = Object.fromEntries(
+    Object.entries(credentials).map(([key, value]) => [normalizeAccessCode(key), value])
+  );
+  const match = normalizedCredentials[normalizedPassword];
 
   if (!match) {
     return Response.json({ error: "Invalid password" }, { status: 401 });
