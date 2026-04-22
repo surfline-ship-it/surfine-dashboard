@@ -177,7 +177,7 @@ body {
 
 .kpi-grid-4 { grid-template-columns: repeat(4, 1fr); }
 .kpi-grid-3 { grid-template-columns: repeat(3, 1fr); }
-.kpi-grid-deal-milestones { grid-template-columns: repeat(3, 1fr); }
+.kpi-grid-deal-milestones { grid-template-columns: repeat(4, 1fr); }
 
 .kpi {
   background: var(--gray-100);
@@ -437,10 +437,14 @@ body {
 }
 
 /* Responsive */
+@media (max-width: 1100px) {
+  .kpi-grid-deal-milestones { grid-template-columns: repeat(2, 1fr); }
+}
+
 @media (max-width: 768px) {
   .kpi-grid-4 { grid-template-columns: repeat(2, 1fr); }
   .kpi-grid[style*="repeat(5"] { grid-template-columns: repeat(2, 1fr) !important; }
-  .kpi-grid-deal-milestones { grid-template-columns: 1fr; }
+  .kpi-grid-deal-milestones { grid-template-columns: repeat(2, 1fr); }
   .card-row { grid-template-columns: 1fr; }
   .dash-header { flex-direction: column; gap: 8px; }
   .dash-header-right { text-align: left; }

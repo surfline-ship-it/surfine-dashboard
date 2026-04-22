@@ -183,6 +183,13 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
       <div className="section-label">Deal pipeline</div>
       <div className="kpi-grid kpi-grid-deal-milestones">
         <div className="kpi">
+          <div className="kpi-label">Interested responses</div>
+          <div className="kpi-value" style={{ color: "var(--green)" }}>
+            {metrics.interestedResponses.toLocaleString()}
+          </div>
+          <div className="kpi-sub">Unique companies (email domain) — Instantly or cold-call interest</div>
+        </div>
+        <div className="kpi">
           <div className="kpi-label">Teasers sent</div>
           <div className="kpi-value" style={{ color: "var(--amber)" }}>
             {metrics.teasersSent.toLocaleString()}
@@ -221,9 +228,9 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
               <div className="kpi-value sm">{metrics.uniqueCompaniesEmailed.toLocaleString()}</div>
             </div>
             <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
-              <div className="kpi-label">Interested replies</div>
+              <div className="kpi-label">Interested responses</div>
               <div className="kpi-value sm" style={{ color: "var(--green)" }}>
-                {metrics.interestedReplies}
+                {metrics.interestedResponses.toLocaleString()}
               </div>
             </div>
             <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
@@ -231,7 +238,10 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
               <div className="kpi-value sm">{metrics.totalContacts.toLocaleString()}</div>
             </div>
           </div>
-          <EmailChart contacts={metrics.totalContacts} interested={metrics.interestedReplies} />
+          <EmailChart
+            uniqueCompanies={metrics.uniqueCompaniesInPipeline}
+            interestedCompanies={metrics.interestedResponses}
+          />
         </div>
 
         <div className="card">
