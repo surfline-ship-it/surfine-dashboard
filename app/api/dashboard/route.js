@@ -3,6 +3,7 @@ import {
   getPartnerContacts,
   getPartnerDeals,
   getCallEngagements,
+  getInterestedCompanyCountForContacts,
   getSearchNamesFromContacts,
   computeMetrics,
 } from "@/lib/hubspot";
@@ -70,11 +71,22 @@ export async function GET(request) {
       // Continue without call data rather than failing the whole dashboard
     }
 
+    let interestedResponses = 0;
+    try {
+      interestedResponses = await getInterestedCompanyCountForContacts(contacts, {
+        start: startDate,
+        end: endDate,
+      });
+    } catch (e) {
+      console.error("Interested companies fetch error:", e.message);
+      // Continue without interested company count rather than failing the whole dashboard
+    }
+
     // Compute metrics
     const metrics = computeMetrics(contacts, deals, callData, searchFilter, {
       start: startDate,
       end: endDate,
-    });
+    }, interestedResponses);
 
     return Response.json({
       partner: label,

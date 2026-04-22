@@ -1,7 +1,7 @@
 "use client";
 
 export default function EmailChart({ uniqueCompanies, interestedCompanies }) {
-  if (!uniqueCompanies) {
+  if (!uniqueCompanies && !interestedCompanies) {
     return (
       <div style={{
         textAlign: "center", padding: "1.5rem 0",
@@ -20,7 +20,7 @@ export default function EmailChart({ uniqueCompanies, interestedCompanies }) {
       }}>
         <span>{uniqueCompanies.toLocaleString()} unique companies (by domain)</span>
         <span style={{ color: "var(--green)", fontWeight: 600 }}>
-          {interestedCompanies.toLocaleString()} interested
+          {interestedCompanies.toLocaleString()} interested companies
         </span>
       </div>
     </div>

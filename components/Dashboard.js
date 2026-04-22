@@ -95,6 +95,10 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
     month: "long", day: "numeric", year: "numeric",
   });
   const hasDateFilter = Boolean(dateFilter?.start || dateFilter?.end);
+  const lockedSearchName =
+    typeof partnerInfo?.search === "string" && partnerInfo.search.trim()
+      ? partnerInfo.search.trim()
+      : null;
 
   return (
     <div className="dashboard">
@@ -102,12 +106,14 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
       <div className="dash-header">
         <div className="dash-header-left">
           <h1>{partner}</h1>
-          <span>Outbound activity report</span>
-        </div>
-        <div className="dash-header-right">
-          <div>Data as of {dateStr}</div>
+          {searchLocked && lockedSearchName ? (
+            <div className="dash-subtitle">{lockedSearchName}</div>
+          ) : null}
+          {!searchLocked && searches.length === 1 ? (
+            <div className="dash-subtitle">{searches[0]}</div>
+          ) : null}
           {!searchLocked && searches.length > 1 && (
-            <div className="pills">
+            <div className="pills pills-left">
               <span
                 className={`pill ${!searchFilter ? "active" : ""}`}
                 onClick={() => setSearchFilter(null)}
@@ -125,9 +131,9 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
               ))}
             </div>
           )}
-          {!searchLocked && searches.length === 1 && (
-            <div style={{ marginTop: 4, fontSize: 12 }}>Search: {searches[0]}</div>
-          )}
+        </div>
+        <div className="dash-header-right">
+          <div>Data as of {dateStr}</div>
           <div style={{ marginTop: 8, display: "flex", gap: 6, alignItems: "center", justifyContent: "flex-end" }}>
             <input
               type="date"
@@ -179,15 +185,15 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
         </div>
       )}
 
-      {/* Deal pipeline — headline milestones */}
-      <div className="section-label">Deal pipeline</div>
+      {/* Overview — headline milestones */}
+      <div className="section-label">Overview</div>
       <div className="kpi-grid kpi-grid-deal-milestones">
         <div className="kpi">
           <div className="kpi-label">Interested responses</div>
           <div className="kpi-value" style={{ color: "var(--green)" }}>
             {metrics.interestedResponses.toLocaleString()}
           </div>
-          <div className="kpi-sub">Unique companies (email domain) — Instantly or cold-call interest</div>
+          <div className="kpi-sub">HubSpot companies where interested = true</div>
         </div>
         <div className="kpi">
           <div className="kpi-label">Teasers sent</div>
@@ -212,6 +218,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
         </div>
       </div>
 
+      <div className="section-label">Activity report</div>
       {/* Email + Calling side by side */}
       <div className="card-row">
         <div className="card">
