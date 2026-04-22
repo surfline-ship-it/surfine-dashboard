@@ -265,7 +265,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
       <div className="section-label">Pipeline progression</div>
       <div className="pipeline-card pipeline-progression">
         {(metrics.pipelineProgression || []).map((row) => (
-          <div key={row.stageId} className={`pipeline-stage-block ${row.rowClass}`}>
+          <div key={row.rowId} className={`pipeline-stage-block ${row.rowClass}`}>
             <div className="pipeline-stage-header">
               <span className="pipeline-stage-title">{row.label}</span>
               <span className="pipeline-stage-count">{row.count}</span>
@@ -274,21 +274,18 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
               <ul className="pipeline-deal-list">
                 {row.deals.map((d) => (
                   <li key={d.id} className="pipeline-deal-item">
-                    {row.stageId === "3253863103" ? (
+                    {row.isPassedRow ? (
                       <details className="pipeline-passed-details">
-                        <summary>{d.name}</summary>
+                        <summary className="pipeline-deal-line">{d.displayLine}</summary>
                         {d.partnerPassedStage ? (
-                          <div className="pipeline-deal-meta">Partner passed stage: {d.partnerPassedStage}</div>
+                          <div className="pipeline-deal-meta">Passed: {d.partnerPassedStage}</div>
                         ) : null}
                         {d.passedReason ? (
                           <div className="pipeline-deal-meta">Reason: {d.passedReason}</div>
                         ) : null}
                       </details>
                     ) : (
-                      <span>
-                        <span className="pipeline-deal-name">{d.name}</span>
-                        {d.search ? <span className="muted"> · {d.search}</span> : null}
-                      </span>
+                      <div className="pipeline-deal-line">{d.displayLine}</div>
                     )}
                   </li>
                 ))}

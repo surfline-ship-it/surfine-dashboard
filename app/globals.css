@@ -346,6 +346,11 @@ body {
 
 .pipeline-deal-name { font-weight: 500; }
 
+.pipeline-deal-line {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .pipeline-deal-meta {
   color: var(--gray-600);
   margin-top: 4px;
