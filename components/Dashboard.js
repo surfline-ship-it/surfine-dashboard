@@ -92,6 +92,13 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
   const dateStr = genDate.toLocaleDateString("en-US", {
     month: "long", day: "numeric", year: "numeric",
   });
+  const dateTimeStr = genDate.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
   const hasDateFilter = Boolean(dateFilter?.start || dateFilter?.end);
   const lockedSearchName =
     typeof partnerInfo?.search === "string" && partnerInfo.search.trim()
@@ -286,7 +293,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
 
       {/* Footer */}
       <div className="dash-footer">
-        Data as of {dateStr} · Companies deduplicated by domain across all search lists · Prepared by Surfline Capital
+        Data as of {dateTimeStr} · Companies deduplicated by domain across all search lists · Prepared by Surfline Capital
         <div style={{ marginTop: 6 }}>
           <span
             onClick={onLogout}

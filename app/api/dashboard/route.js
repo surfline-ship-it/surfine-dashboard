@@ -2,11 +2,20 @@ import { verifyToken } from "@/lib/auth";
 import {
   getPartnerContacts,
   getPartnerDeals,
-  getCallEngagements,
-  getInterestedCompanyCountForContacts,
+  getInterestedCompanyCount,
+  getTotalOutboundCalls,
   getSearchNamesFromContacts,
   computeMetrics,
 } from "@/lib/hubspot";
+
+const CACHE_TTL_MS = 15 * 60 * 1000;
+const dashboardCache =
+  globalThis.__surflineDashboardCache || new Map();
+globalThis.__surflineDashboardCache = dashboardCache;
+
+function cacheKey(partner, searchFilter) {
+  return `${partner}::${searchFilter || "all"}`;
+}
 
 export async function GET(request) {
   // Auth check
@@ -51,35 +60,34 @@ export async function GET(request) {
   const endDate = searchParams.get("end") || null;
 
   try {
-    // Contacts + deals only (do not call getPartnerSearches — it duplicates contact search and spikes rate limits)
-    const contacts = await getPartnerContacts(partner, searchFilter || undefined);
-    const searches = getSearchNamesFromContacts(contacts);
-    const deals = await getPartnerDeals(partner, searchFilter || undefined);
+    const key = cacheKey(partner, searchFilter);
+    const now = Date.now();
+    const cached = dashboardCache.get(key);
 
-    // Get call data for partner's contacts
-    const contactIds = contacts.map((c) => c.id);
+    let contacts;
+    let deals;
+    let searches;
+    let interestedResponses;
+    let callData;
+    let generatedAt;
+    let totalCalls = 0;
 
-    // For large contact lists, we'll limit call lookups to avoid rate limits
-    // In production, this should be cached or pre-computed
-    const callContactIds = contactIds.slice(0, 200); // cap at 200 for API rate limits
-    let callData = { total: 0, connected: 0, calls: [] };
-
-    try {
-      callData = await getCallEngagements(callContactIds);
-    } catch (e) {
-      console.error("Call data fetch error:", e.message);
-      // Continue without call data rather than failing the whole dashboard
-    }
-
-    let interestedResponses = 0;
-    try {
-      interestedResponses = await getInterestedCompanyCountForContacts(contacts, {
-        start: startDate,
-        end: endDate,
+    if (cached && cached.expiresAt > now) {
+      ({ contacts, deals, searches, interestedResponses, callData, generatedAt } = cached.data);
+    } else {
+      [contacts, deals, interestedResponses, totalCalls] = await Promise.all([
+        getPartnerContacts(partner, searchFilter || undefined),
+        getPartnerDeals(partner, searchFilter || undefined),
+        getInterestedCompanyCount(partner, searchFilter || undefined),
+        getTotalOutboundCalls(partner, searchFilter || undefined),
+      ]);
+      searches = getSearchNamesFromContacts(contacts);
+      callData = { total: totalCalls, connected: 0, calls: [] };
+      generatedAt = new Date().toISOString();
+      dashboardCache.set(key, {
+        expiresAt: now + CACHE_TTL_MS,
+        data: { contacts, deals, searches, interestedResponses, callData, generatedAt },
       });
-    } catch (e) {
-      console.error("Interested companies fetch error:", e.message);
-      // Continue without interested company count rather than failing the whole dashboard
     }
 
     // Compute metrics
@@ -96,7 +104,7 @@ export async function GET(request) {
       searchLocked,
       dateFilter: { start: startDate, end: endDate },
       metrics,
-      generatedAt: new Date().toISOString(),
+      generatedAt,
     });
   } catch (error) {
     console.error("Dashboard error:", error);
