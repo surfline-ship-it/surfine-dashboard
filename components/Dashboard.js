@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import CallFunnel from "./CallFunnel";
-import EmailChart from "./EmailChart";
 
 export default function Dashboard({ token, partnerInfo, onLogout }) {
   const [data, setData] = useState(null);
@@ -218,7 +216,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
         </div>
       </div>
 
-      <div className="section-label">Activity report</div>
+      <div className="section-label">Activity Report</div>
       {/* Email + Calling side by side */}
       <div className="card-row">
         <div className="card">
@@ -235,46 +233,20 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
               <div className="kpi-value sm">{metrics.uniqueCompaniesEmailed.toLocaleString()}</div>
             </div>
             <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
-              <div className="kpi-label">Interested responses</div>
-              <div className="kpi-value sm" style={{ color: "var(--green)" }}>
-                {metrics.interestedResponses.toLocaleString()}
-              </div>
-            </div>
-            <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
               <div className="kpi-label">Total contacts</div>
               <div className="kpi-value sm">{metrics.totalContacts.toLocaleString()}</div>
             </div>
           </div>
-          <EmailChart
-            uniqueCompanies={metrics.uniqueCompaniesInPipeline}
-            interestedCompanies={metrics.interestedResponses}
-          />
         </div>
 
         <div className="card">
           <div className="card-title">Cold calling</div>
-          <div className="kpi-grid kpi-grid-3" style={{ marginBottom: 14 }}>
+          <div className="kpi-grid" style={{ gridTemplateColumns: "1fr", marginBottom: 14 }}>
             <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
               <div className="kpi-label">Total calls made</div>
               <div className="kpi-value sm">{metrics.totalCalls.toLocaleString()}</div>
             </div>
-            <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
-              <div className="kpi-label">Connected calls</div>
-              <div className="kpi-value sm" style={{ color: "var(--green)" }}>
-                {metrics.connectedCalls}
-              </div>
-            </div>
-            <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
-              <div className="kpi-label">Interested from calls</div>
-              <div className="kpi-value sm" style={{ color: "var(--green)" }}>
-                {metrics.interestedFromCalls}
-              </div>
-            </div>
           </div>
-          <CallFunnel
-            total={metrics.totalCalls}
-            connected={metrics.connectedCalls}
-          />
         </div>
       </div>
 
