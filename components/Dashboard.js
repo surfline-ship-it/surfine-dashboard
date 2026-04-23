@@ -11,7 +11,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const fetchDashboard = useCallback(async (search, start, end) => {
+  const fetchDashboard = useCallback(async (search, start, end, forceRefresh = false) => {
     setLoading(true);
     setError(null);
 
@@ -20,6 +20,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
       if (search) params.set("search", search);
       if (start) params.set("start", start);
       if (end) params.set("end", end);
+      if (forceRefresh) params.set("refresh", "1");
       const query = params.toString();
       const url = query ? `/api/dashboard?${query}` : "/api/dashboard";
 
@@ -294,8 +295,17 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
 
       {/* Footer */}
       <div className="dash-footer">
-        Data as of {dateTimeStr} · Companies deduplicated by domain across all search lists · Prepared by Surfline Capital
-        <div style={{ marginTop: 6 }}>
+        Data as of {dateTimeStr} (last HubSpot refresh for this view) · Companies deduplicated by domain across all search lists · Prepared by Surfline Capital
+        <div className="dash-footer-actions">
+          <button
+            type="button"
+            className="dash-footer-refresh"
+            onClick={() => fetchDashboard(searchLocked ? null : searchFilter, startDate, endDate, true)}
+            disabled={loading}
+          >
+            Force refresh
+          </button>
+          <span>·</span>
           <span
             onClick={onLogout}
             style={{ cursor: "pointer", textDecoration: "underline" }}
