@@ -2,7 +2,6 @@ import { verifyToken } from "@/lib/auth";
 import {
   getPartnerContacts,
   getPartnerDeals,
-  getInterestedCompanyCount,
   getTotalOutboundCalls,
   getSearchNamesFromContacts,
   computeMetrics,
@@ -83,19 +82,17 @@ export async function GET(request) {
 
     let contacts;
     let deals;
-    let interestedResponses;
     let callData;
     let generatedAt;
     let totalCalls = 0;
 
     const cached = forceRefresh ? null : getCached(key);
     if (cached) {
-      ({ contacts, deals, interestedResponses, callData, generatedAt } = cached);
+      ({ contacts, deals, callData, generatedAt } = cached);
     } else {
-      [contacts, deals, interestedResponses, totalCalls] = await Promise.all([
+      [contacts, deals, totalCalls] = await Promise.all([
         getPartnerContacts(partner, searchFilter || undefined),
         getPartnerDeals(partner, searchFilter || undefined),
-        getInterestedCompanyCount(partner, searchFilter || undefined),
         getTotalOutboundCalls(partner, searchFilter || undefined),
       ]);
       callData = { total: totalCalls, connected: 0, calls: [] };
@@ -103,7 +100,6 @@ export async function GET(request) {
       setCached(key, {
         contacts,
         deals,
-        interestedResponses,
         callData,
         generatedAt,
       });
@@ -116,7 +112,7 @@ export async function GET(request) {
     const metrics = computeMetrics(contacts, deals, callData, searchFilter, {
       start: startDate,
       end: endDate,
-    }, interestedResponses);
+    });
 
     return Response.json({
       partner: label,

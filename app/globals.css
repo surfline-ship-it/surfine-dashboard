@@ -182,7 +182,7 @@ body {
 
 .kpi-grid-4 { grid-template-columns: repeat(4, 1fr); }
 .kpi-grid-3 { grid-template-columns: repeat(3, 1fr); }
-.kpi-grid-deal-milestones { grid-template-columns: repeat(4, 1fr); }
+.kpi-grid-deal-milestones { grid-template-columns: repeat(3, 1fr); }
 
 .kpi {
   background: var(--gray-100);

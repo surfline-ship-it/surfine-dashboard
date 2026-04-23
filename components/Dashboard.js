@@ -196,13 +196,6 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
       <div className="section-label">Overview</div>
       <div className="kpi-grid kpi-grid-deal-milestones">
         <div className="kpi">
-          <div className="kpi-label">Interested responses</div>
-          <div className="kpi-value" style={{ color: "var(--green)" }}>
-            {metrics.interestedResponses.toLocaleString()}
-          </div>
-          <div className="kpi-sub">HubSpot companies where interested = true</div>
-        </div>
-        <div className="kpi">
           <div className="kpi-label">Teasers sent</div>
           <div className="kpi-value" style={{ color: "var(--amber)" }}>
             {metrics.teasersSent.toLocaleString()}
