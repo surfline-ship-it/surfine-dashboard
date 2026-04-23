@@ -17,6 +17,20 @@ function cacheKey(partner, searchFilter) {
   return `${partner}::${searchFilter || "all"}`;
 }
 
+function searchPillsCacheKey(partner) {
+  return `${partner}::__search_pills__`;
+}
+
+async function getPartnerSearchPillsList(partner, now) {
+  const pillsKey = searchPillsCacheKey(partner);
+  const hit = dashboardCache.get(pillsKey);
+  if (hit && hit.expiresAt > now) return hit.searches;
+  const allContacts = await getPartnerContacts(partner);
+  const searches = getSearchNamesFromContacts(allContacts);
+  dashboardCache.set(pillsKey, { expiresAt: now + CACHE_TTL_MS, searches });
+  return searches;
+}
+
 export async function GET(request) {
   // Auth check
   const authHeader = request.headers.get("authorization");
@@ -66,14 +80,13 @@ export async function GET(request) {
 
     let contacts;
     let deals;
-    let searches;
     let interestedResponses;
     let callData;
     let generatedAt;
     let totalCalls = 0;
 
     if (cached && cached.expiresAt > now) {
-      ({ contacts, deals, searches, interestedResponses, callData, generatedAt } = cached.data);
+      ({ contacts, deals, interestedResponses, callData, generatedAt } = cached.data);
     } else {
       [contacts, deals, interestedResponses, totalCalls] = await Promise.all([
         getPartnerContacts(partner, searchFilter || undefined),
@@ -81,14 +94,17 @@ export async function GET(request) {
         getInterestedCompanyCount(partner, searchFilter || undefined),
         getTotalOutboundCalls(partner, searchFilter || undefined),
       ]);
-      searches = getSearchNamesFromContacts(contacts);
       callData = { total: totalCalls, connected: 0, calls: [] };
       generatedAt = new Date().toISOString();
       dashboardCache.set(key, {
         expiresAt: now + CACHE_TTL_MS,
-        data: { contacts, deals, searches, interestedResponses, callData, generatedAt },
+        data: { contacts, deals, interestedResponses, callData, generatedAt },
       });
     }
+
+    const searches = searchLocked
+      ? getSearchNamesFromContacts(contacts)
+      : await getPartnerSearchPillsList(partner, now);
 
     // Compute metrics
     const metrics = computeMetrics(contacts, deals, callData, searchFilter, {

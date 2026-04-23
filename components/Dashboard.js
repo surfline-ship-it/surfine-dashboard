@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { canonicalSearchName } from "@/lib/searchNames";
 
 export default function Dashboard({ token, partnerInfo, onLogout }) {
   const [data, setData] = useState(null);
@@ -112,7 +113,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
         <div className="dash-header-left">
           <h1>{partner}</h1>
           {searchLocked && lockedSearchName ? (
-            <div className="dash-subtitle">{lockedSearchName}</div>
+            <div className="dash-subtitle">{canonicalSearchName(lockedSearchName)}</div>
           ) : null}
           {!searchLocked && searches.length === 1 ? (
             <div className="dash-subtitle">{searches[0]}</div>

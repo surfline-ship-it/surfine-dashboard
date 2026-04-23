@@ -99,7 +99,7 @@ Until Clay is upgraded to push to HubSpot automatically:
 2. Import to HubSpot via CSV import
 3. Ensure each contact has:
    - `partner` = partner name (e.g., "Trivest")
-   - `search_name` = search identifier (e.g., "Fencing", "Access Control")
+   - `search_name` = search identifier (e.g., "Residential Fencing", "Access Control")
    - `company` = company name (used for dedup)
 4. Dashboard will reflect the data on next page load
 
