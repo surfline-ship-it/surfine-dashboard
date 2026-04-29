@@ -2,7 +2,7 @@ import { verifyToken } from "@/lib/auth";
 import {
   getPartnerContacts,
   getPartnerDeals,
-  getTotalOutboundCalls,
+  getOutboundCallsForContacts,
   getSearchNamesFromContacts,
   computeMetrics,
 } from "@/lib/hubspot";
@@ -84,18 +84,16 @@ export async function GET(request) {
     let deals;
     let callData;
     let generatedAt;
-    let totalCalls = 0;
 
     const cached = forceRefresh ? null : getCached(key);
     if (cached) {
       ({ contacts, deals, callData, generatedAt } = cached);
     } else {
-      [contacts, deals, totalCalls] = await Promise.all([
+      [contacts, deals] = await Promise.all([
         getPartnerContacts(partner, searchFilter || undefined),
         getPartnerDeals(partner, searchFilter || undefined),
-        getTotalOutboundCalls(partner, searchFilter || undefined),
       ]);
-      callData = { total: totalCalls, connected: 0, calls: [] };
+      callData = await getOutboundCallsForContacts(contacts.map((c) => c.id));
       generatedAt = new Date().toISOString();
       setCached(key, {
         contacts,
