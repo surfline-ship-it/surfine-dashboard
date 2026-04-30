@@ -8,16 +8,26 @@ import {
 } from "@/lib/hubspot";
 import {
   getCached,
+  getCacheMeta,
+  deleteCached,
   setCached,
   invalidatePartnerCaches,
 } from "@/lib/dashboardCache";
 
-function cacheKey(partner, searchFilter) {
-  return `${partner}::${searchFilter || "all"}`;
+const CACHE_VERSION =
+  process.env.CACHE_VERSION ||
+  process.env.VERCEL_GIT_COMMIT_SHA ||
+  "v1";
+
+function cacheKey(partner, searchFilter, startDate, endDate) {
+  const searchPart = searchFilter || "all";
+  const startPart = startDate || "any";
+  const endPart = endDate || "any";
+  return `${CACHE_VERSION}::${partner}::${searchPart}::${startPart}::${endPart}`;
 }
 
 function searchPillsCacheKey(partner) {
-  return `${partner}::__search_pills__`;
+  return `${CACHE_VERSION}::${partner}::__search_pills__`;
 }
 
 async function getPartnerSearchPillsList(partner) {
@@ -74,11 +84,22 @@ export async function GET(request) {
     searchParams.get("refresh") === "true";
 
   try {
-    if (forceRefresh) {
-      invalidatePartnerCaches(partner);
-    }
+    const key = cacheKey(partner, searchFilter, startDate, endDate);
+    const pillsKey = searchPillsCacheKey(partner);
+    const metaBefore = getCacheMeta(key);
 
-    const key = cacheKey(partner, searchFilter);
+    if (forceRefresh) {
+      const deletedCurrent = deleteCached(key);
+      const deletedPills = deleteCached(pillsKey);
+      invalidatePartnerCaches(partner);
+      console.info("CACHE BUSTED", {
+        partner,
+        key,
+        deletedCurrent,
+        deletedPills,
+        metaBefore,
+      });
+    }
 
     let contacts;
     let deals;
@@ -88,6 +109,12 @@ export async function GET(request) {
     const cached = forceRefresh ? null : getCached(key);
     if (cached) {
       ({ contacts, deals, callData, generatedAt } = cached);
+      console.info("Dashboard cache HIT", {
+        key,
+        cacheTimestamp: generatedAt,
+        cacheMeta: getCacheMeta(key),
+        dealsCount: Array.isArray(deals) ? deals.length : 0,
+      });
     } else {
       [contacts, deals] = await Promise.all([
         getPartnerContacts(partner, searchFilter || undefined),
@@ -100,6 +127,11 @@ export async function GET(request) {
         deals,
         callData,
         generatedAt,
+      });
+      console.info("Dashboard cache MISS (fresh HubSpot fetch)", {
+        key,
+        cacheTimestamp: generatedAt,
+        dealsCount: Array.isArray(deals) ? deals.length : 0,
       });
     }
 
