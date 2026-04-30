@@ -372,6 +372,11 @@ body {
   border-color: var(--gray-200) !important;
 }
 
+.pipeline-row-longterm {
+  background: var(--blue-light);
+  border-color: #cfe4f8 !important;
+}
+
 .pipeline-row-mid {
   background: var(--amber-light);
   border-color: var(--amber-light) !important;
