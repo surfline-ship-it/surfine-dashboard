@@ -507,6 +507,7 @@ body {
   font-weight: 600;
   padding: 2px 10px;
   display: inline-block;
+  border: none;
 }
 
 .dnc-pill.go {
@@ -517,6 +518,23 @@ body {
 .dnc-pill.no-go {
   background: var(--red-light);
   color: var(--red);
+}
+
+.dnc-pill.dnc-disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.comments-disabled-input {
+  width: 100%;
+  max-width: 240px;
+  font-size: 12px;
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  padding: 4px 6px;
+  background: var(--gray-100);
+  color: var(--gray-600);
+  cursor: not-allowed;
 }
 
 .leads-pagination {

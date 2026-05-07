@@ -54,13 +54,28 @@ export default function LeadsTable({ rows, sortBy, sortDir, onSort }) {
               <td>{row.tier || "—"}</td>
               <td>{row.pipelineStage || "—"}</td>
               <td>
-                <span className={`dnc-pill ${row.dncStatus === "No Go" ? "no-go" : "go"}`}>
+                <button
+                  type="button"
+                  disabled
+                  title="Editing coming soon."
+                  className={`dnc-pill dnc-disabled ${row.dncStatus === "No Go" ? "no-go" : "go"}`}
+                >
                   {row.dncStatus || "Go"}
-                </span>
+                </button>
               </td>
               <td>{row.dateSentForDnc || "—"}</td>
               <td>{row.dateConfirmed || "—"}</td>
-              <td className="comment-cell" title={row.comments || ""}>{row.comments || "—"}</td>
+              <td className="comment-cell">
+                <input
+                  type="text"
+                  value={row.comments || ""}
+                  readOnly
+                  disabled
+                  placeholder="—"
+                  title="Editing coming soon."
+                  className="comments-disabled-input"
+                />
+              </td>
             </tr>
           ))}
         </tbody>

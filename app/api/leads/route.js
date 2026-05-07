@@ -32,12 +32,12 @@ export async function GET(request) {
     return Response.json({ error: "Invalid or expired token" }, { status: 401 });
   }
 
-  if (!process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS) {
+  if (!process.env.GOOGLE_API_KEY) {
     return Response.json(
       {
         error: "Failed to load leads",
         details:
-          "GOOGLE_SERVICE_ACCOUNT_CREDENTIALS is not set. Add it in Vercel Project → Settings → Environment Variables.",
+          "GOOGLE_API_KEY is not set. Add it in Vercel Project → Settings → Environment Variables.",
       },
       { status: 500 }
     );
