@@ -8,12 +8,13 @@
     "start": "next start"
   },
   "dependencies": {
+    "chart.js": "^4.4.1",
+    "googleapis": "^171.4.0",
+    "jose": "^5.2.0",
     "next": "^14.2.0",
     "react": "^18.3.0",
-    "react-dom": "^18.3.0",
-    "chart.js": "^4.4.1",
     "react-chartjs-2": "^5.2.0",
-    "jose": "^5.2.0"
+    "react-dom": "^18.3.0"
   },
   "devDependencies": {
     "@types/node": "^20",
