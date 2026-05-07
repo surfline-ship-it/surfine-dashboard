@@ -7,11 +7,12 @@ const PAGE_SIZE = 50;
 
 function normalizeTier(value) {
   const v = String(value || "").trim().toLowerCase();
-  if (!v) return "Untiered";
-  if (v.includes("tier 1") || v.includes(">5")) return "Tier 1 (>5M)";
-  if (v.includes("tier 2") || v.includes("2-5")) return "Tier 2 (2-5M)";
-  if (v.includes("tier 3") || v.includes("500")) return "Tier 3 (500k-2M)";
-  return "Untiered";
+  if (!v) return "Tier 3";
+  if (v.includes("top account") || v === "top" || v === "ta") return "Top Accounts";
+  if (v.includes("tier 1") || v === "1" || v.includes(">5")) return "Tier 1";
+  if (v.includes("tier 2") || v === "2" || v.includes("2-5")) return "Tier 2";
+  if (v.includes("tier 3") || v === "3" || v.includes("500")) return "Tier 3";
+  return "Tier 3";
 }
 
 function sortRows(rows, sortBy, sortDir) {
@@ -42,7 +43,7 @@ export default function LeadsView({ leadsData, searchLocked, searchFilter, onSea
 
   const leads = Array.isArray(leadsData?.leads) ? leadsData.leads : [];
   const filtered = useMemo(() => {
-    let out = leads;
+    let out = leads.map((r) => ({ ...r, tier: normalizeTier(r.tier) }));
     if (searchFilter) {
       out = out.filter((r) => r.searchName === searchFilter);
     }
@@ -129,10 +130,10 @@ export default function LeadsView({ leadsData, searchLocked, searchFilter, onSea
         </select>
         <select value={tierFilter} onChange={(e) => { setTierFilter(e.target.value); setPage(1); }}>
           <option value="all">All tiers</option>
-          <option value="Tier 1 (>5M)">Tier 1 (&gt;5M)</option>
-          <option value="Tier 2 (2-5M)">Tier 2 (2-5M)</option>
-          <option value="Tier 3 (500k-2M)">Tier 3 (500k-2M)</option>
-          <option value="Untiered">Untiered</option>
+          <option value="Top Accounts">Top Accounts</option>
+          <option value="Tier 1">Tier 1</option>
+          <option value="Tier 2">Tier 2</option>
+          <option value="Tier 3">Tier 3</option>
         </select>
         <select value={stageFilter} onChange={(e) => { setStageFilter(e.target.value); setPage(1); }}>
           <option value="all">All stages</option>
