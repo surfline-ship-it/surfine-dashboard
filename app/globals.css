@@ -449,6 +449,19 @@ body {
   margin-bottom: 8px;
 }
 
+.leads-stage-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spinner.leads-stage-spinner {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+  margin-right: 0;
+}
+
 .leads-table-wrap {
   overflow: auto;
   border: 1px solid var(--gray-200);

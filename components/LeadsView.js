@@ -26,7 +26,7 @@ function sortRows(rows, sortBy, sortDir) {
   });
 }
 
-export default function LeadsView({ leadsData, searchLocked, searchFilter, onSearchFilterChange }) {
+export default function LeadsView({ token, leadsData, searchLocked, searchFilter, onSearchFilterChange }) {
   const [dncFilter, setDncFilter] = useState("all");
   const [tierFilter, setTierFilter] = useState("all");
   const [stageFilter, setStageFilter] = useState("all");
@@ -35,6 +35,8 @@ export default function LeadsView({ leadsData, searchLocked, searchFilter, onSea
   const [sortBy, setSortBy] = useState("companyName");
   const [sortDir, setSortDir] = useState("asc");
   const [page, setPage] = useState(1);
+  const [stageByLeadId, setStageByLeadId] = useState({});
+  const [stagesLoading, setStagesLoading] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query.trim().toLowerCase()), 300);
@@ -42,11 +44,58 @@ export default function LeadsView({ leadsData, searchLocked, searchFilter, onSea
   }, [query]);
 
   const leads = Array.isArray(leadsData?.leads) ? leadsData.leads : [];
-  const filtered = useMemo(() => {
-    let out = leads.map((r) => ({ ...r, tier: normalizeTier(r.tier) }));
-    if (searchFilter) {
-      out = out.filter((r) => r.searchName === searchFilter);
+  const scopedBySearch = useMemo(() => {
+    if (!searchFilter) return leads;
+    return leads.filter((r) => String(r.searchName || "").trim() === String(searchFilter || "").trim());
+  }, [leads, searchFilter]);
+
+  useEffect(() => {
+    let active = true;
+    async function loadStages() {
+      // Render leads immediately; fill stages asynchronously.
+      const payloadLeads = scopedBySearch.map((r) => ({
+        id: r.id,
+        companyName: r.companyName,
+        domain: r.domain,
+        searchName: r.searchName,
+      }));
+      if (payloadLeads.length === 0) {
+        if (active) setStageByLeadId({});
+        if (active) setStagesLoading(false);
+        return;
+      }
+      if (active) setStagesLoading(true);
+      try {
+        const res = await fetch("/api/leads/stages", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ leads: payloadLeads }),
+        });
+        if (!res.ok) throw new Error("Failed to hydrate stages");
+        const data = await res.json();
+        if (active) setStageByLeadId(data?.stageByLeadId || {});
+      } catch {
+        // Graceful fallback: leave dashes in Pipeline Stage.
+        if (active) setStageByLeadId({});
+      } finally {
+        if (active) setStagesLoading(false);
+      }
     }
+    loadStages();
+    return () => {
+      active = false;
+    };
+  }, [token, scopedBySearch]);
+
+  const filtered = useMemo(() => {
+    let out = scopedBySearch.map((r) => ({
+      ...r,
+      tier: normalizeTier(r.tier),
+      pipelineStage: stageByLeadId[r.id] || "-",
+    }));
     if (dncFilter !== "all") {
       out = out.filter((r) => (dncFilter === "go" ? r.dncStatus !== "No Go" : r.dncStatus === "No Go"));
     }
@@ -66,7 +115,7 @@ export default function LeadsView({ leadsData, searchLocked, searchFilter, onSea
       );
     }
     return sortRows(out, sortBy, sortDir);
-  }, [leads, searchFilter, dncFilter, tierFilter, stageFilter, debouncedQuery, sortBy, sortDir]);
+  }, [scopedBySearch, stageByLeadId, dncFilter, tierFilter, stageFilter, debouncedQuery, sortBy, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
@@ -107,7 +156,7 @@ export default function LeadsView({ leadsData, searchLocked, searchFilter, onSea
           >
             All searches
           </span>
-          {leadsData.searches.map((s) => (
+          {[...new Set((leadsData.searches || []).map((s) => String(s || "").trim()).filter(Boolean))].map((s) => (
             <span
               key={s}
               className={`pill ${searchFilter === s ? "active" : ""}`}
@@ -152,6 +201,15 @@ export default function LeadsView({ leadsData, searchLocked, searchFilter, onSea
       <div className="leads-stats">
         Showing {filtered.length.toLocaleString()} companies · {goCount.toLocaleString()} Go · {noGoCount.toLocaleString()} No Go
         {searchFilter ? ` · Filtered by: ${searchFilter}` : ""}
+        {stagesLoading ? (
+          <>
+            {" · "}
+            <span className="leads-stage-loading" aria-live="polite">
+              <span className="spinner leads-stage-spinner" />
+              Loading stages...
+            </span>
+          </>
+        ) : ""}
       </div>
 
       <LeadsTable rows={pageRows} sortBy={sortBy} sortDir={sortDir} onSort={onSort} />

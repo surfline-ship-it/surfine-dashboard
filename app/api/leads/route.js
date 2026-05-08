@@ -2,11 +2,6 @@ import { verifyToken } from "@/lib/auth";
 import { canonicalSearchName } from "@/lib/searchNames";
 import { readPartnerDncSheetRows } from "@/lib/googleSheets";
 import {
-  getPartnerContacts,
-  getSearchNamesFromContacts,
-  getCompanyCommentsAndStageByDomain,
-} from "@/lib/hubspot";
-import {
   getCached,
   setCached,
   deleteCached,
@@ -74,29 +69,22 @@ export async function GET(request) {
       return Response.json(cached);
     }
 
-    const [{ rows }, contacts] = await Promise.all([
-      readPartnerDncSheetRows(partner),
-      getPartnerContacts(partner),
-    ]);
-
-    const sheetSearches = Array.from(new Set(rows.map((r) => r.searchName).filter(Boolean))).sort();
-    const contactSearches = getSearchNamesFromContacts(contacts);
-    const searches = Array.from(new Set([...sheetSearches, ...contactSearches])).sort();
+    const { rows } = await readPartnerDncSheetRows(partner);
+    const searches = Array.from(
+      new Set(
+        rows
+          .map((r) => canonicalSearchName(r.searchName))
+          .map((s) => String(s || "").trim())
+          .filter(Boolean)
+      )
+    ).sort();
 
     const scopedRows = searchFilter
       ? rows.filter((r) => canonicalSearchName(r.searchName) === canonicalSearchName(searchFilter))
       : rows;
 
-    const domains = scopedRows.map((r) => r.domain).filter(Boolean);
-    const hubspotByDomain = await getCompanyCommentsAndStageByDomain(
-      partner,
-      domains,
-      searchFilter || undefined
-    );
-
     const leads = scopedRows.map((r, idx) => {
       const dom = r.domain.toLowerCase();
-      const hs = hubspotByDomain.get(dom);
       return {
         id: `${dom || "row"}-${idx}`,
         companyName: r.companyName,
@@ -104,11 +92,11 @@ export async function GET(request) {
         searchName: r.searchName,
         linkedinUrl: r.linkedinUrl,
         tier: r.tier,
-        pipelineStage: hs?.pipelineStage || "",
+        pipelineStage: "-",
         dncStatus: normalizeDncStatus(r.dncStatus),
         dateSentForDnc: r.dateSentForDnc,
         dateConfirmed: r.dateConfirmed,
-        comments: hs?.comments || "",
+        comments: "",
       };
     });
 

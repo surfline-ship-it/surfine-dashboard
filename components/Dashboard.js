@@ -293,6 +293,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
 
       {viewMode === "leads" ? (
         <LeadsView
+          token={token}
           leadsData={leadsData}
           searchLocked={searchLocked}
           searchFilter={searchFilter}
