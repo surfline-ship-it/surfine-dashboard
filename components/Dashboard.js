@@ -12,7 +12,8 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
   const [leadsData, setLeadsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchFilter, setSearchFilter] = useState(null);
+  const [dashboardSearchFilter, setDashboardSearchFilter] = useState(null);
+  const [leadsSearchFilter, setLeadsSearchFilter] = useState(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [viewMode, setViewMode] = useState("dashboard");
@@ -102,7 +103,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
       setLoading(true);
       setError(null);
       try {
-        const apiSearch = searchLocked ? null : searchFilter;
+        const apiSearch = searchLocked ? null : dashboardSearchFilter;
         const result = await fetchDashboard(apiSearch, startDate, endDate);
         if (active && result) setDashboardData(result);
       } catch (err) {
@@ -115,7 +116,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
     return () => {
       active = false;
     };
-  }, [fetchDashboard, searchLocked, searchFilter, startDate, endDate]);
+  }, [fetchDashboard, searchLocked, dashboardSearchFilter, startDate, endDate]);
 
   useEffect(() => {
     if (viewMode !== "leads") return;
@@ -124,7 +125,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
       setLoading(true);
       setError(null);
       try {
-        const apiSearch = searchLocked ? null : searchFilter;
+        const apiSearch = searchLocked ? null : leadsSearchFilter;
         const result = await fetchLeads(apiSearch, false);
         if (active && result) setLeadsData(result);
       } catch (err) {
@@ -137,17 +138,18 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
     return () => {
       active = false;
     };
-  }, [viewMode, fetchLeads, searchLocked, searchFilter]);
+  }, [viewMode, fetchLeads, searchLocked, leadsSearchFilter]);
 
   const onForceRefresh = async () => {
     setLoading(true);
     setError(null);
     try {
-      const apiSearch = searchLocked ? null : searchFilter;
       if (viewMode === "leads") {
+        const apiSearch = searchLocked ? null : leadsSearchFilter;
         const result = await fetchLeads(apiSearch, true);
         if (result) setLeadsData(result);
       } else {
+        const apiSearch = searchLocked ? null : dashboardSearchFilter;
         const result = await fetchDashboard(apiSearch, startDate, endDate, true);
         if (result) setDashboardData(result);
       }
@@ -187,7 +189,9 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
   if (!activeData) return null;
 
   const { metrics, partner, generatedAt } = dashboardData || activeData;
-  const searches = leadsData?.searches || dashboardData?.searches || [];
+  const dashboardSearches = dashboardData?.searches || [];
+  const leadsSearches = leadsData?.searches || [];
+  const searches = viewMode === "leads" ? leadsSearches : dashboardSearches;
   const dateFilter = dashboardData?.dateFilter || { start: null, end: null };
   const hasDateFilter = Boolean(dateFilter?.start || dateFilter?.end);
   const genDate = new Date(generatedAt);
@@ -210,23 +214,25 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
           {searchLocked && lockedSearchName ? (
             <div className="dash-subtitle">{canonicalSearchName(lockedSearchName)}</div>
           ) : null}
-          {!searchLocked && searches.length === 1 ? (
-            <div className="dash-subtitle">{searches[0]}</div>
+          {!searchLocked && viewMode === "dashboard" && dashboardSearches.length === 1 ? (
+            <div className="dash-subtitle">{dashboardSearches[0]}</div>
           ) : null}
           <ViewToggle value={viewMode} onChange={setViewMode} />
-          {viewMode === "dashboard" && !searchLocked && searches.length > 1 && (
+          {viewMode === "dashboard" && !searchLocked && dashboardSearches.length > 1 && (
             <div className="pills pills-left">
               <span
-                className={`pill ${!searchFilter ? "active" : ""}`}
-                onClick={() => setSearchFilter(null)}
+                className={`pill ${!dashboardSearchFilter ? "active" : ""}`}
+                onClick={() => setDashboardSearchFilter(null)}
               >
                 All searches
               </span>
-              {searches.map((s) => (
+              {dashboardSearches.map((s) => (
                 <span
                   key={s}
-                  className={`pill ${searchFilter === s ? "active" : ""}`}
-                  onClick={() => setSearchFilter(searchFilter === s ? null : s)}
+                  className={`pill ${dashboardSearchFilter === s ? "active" : ""}`}
+                  onClick={() =>
+                    setDashboardSearchFilter(dashboardSearchFilter === s ? null : s)
+                  }
                 >
                   {s}
                 </span>
@@ -296,8 +302,8 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
           token={token}
           leadsData={leadsData}
           searchLocked={searchLocked}
-          searchFilter={searchFilter}
-          onSearchFilterChange={setSearchFilter}
+          searchFilter={leadsSearchFilter}
+          onSearchFilterChange={setLeadsSearchFilter}
         />
       ) : (
         <>
