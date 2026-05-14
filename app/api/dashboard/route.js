@@ -1,4 +1,4 @@
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, resolveDataPartner } from "@/lib/auth";
 import {
   getPartnerContacts,
   getPartnerDeals,
@@ -71,7 +71,17 @@ export async function GET(request) {
       { status: 401 }
     );
   }
+
   const { searchParams } = new URL(request.url);
+  const selectedPartnerParam = searchParams.get("selectedPartner") || undefined;
+  const resolved = resolveDataPartner(payload, selectedPartnerParam);
+  if (resolved.error) {
+    return Response.json(
+      { error: resolved.isAdmin ? "Bad request" : "Invalid session", details: resolved.error },
+      { status: resolved.isAdmin ? 400 : 401 }
+    );
+  }
+  const dataPartner = resolved.dataPartner;
   const searchFromJwt =
     typeof jwtSearch === "string" && jwtSearch.trim() !== "" ? jwtSearch.trim() : null;
   const searchFromQuery = searchParams.get("search");
@@ -84,16 +94,16 @@ export async function GET(request) {
     searchParams.get("refresh") === "true";
 
   try {
-    const key = cacheKey(partner, searchFilter, startDate, endDate);
-    const pillsKey = searchPillsCacheKey(partner);
+    const key = cacheKey(dataPartner, searchFilter, startDate, endDate);
+    const pillsKey = searchPillsCacheKey(dataPartner);
     const metaBefore = getCacheMeta(key);
 
     if (forceRefresh) {
       const deletedCurrent = deleteCached(key);
       const deletedPills = deleteCached(pillsKey);
-      invalidatePartnerCaches(partner);
+      invalidatePartnerCaches(dataPartner);
       console.info("CACHE BUSTED", {
-        partner,
+        partner: dataPartner,
         key,
         deletedCurrent,
         deletedPills,
@@ -117,8 +127,8 @@ export async function GET(request) {
       });
     } else {
       [contacts, deals] = await Promise.all([
-        getPartnerContacts(partner, searchFilter || undefined),
-        getPartnerDeals(partner, searchFilter || undefined),
+        getPartnerContacts(dataPartner, searchFilter || undefined),
+        getPartnerDeals(dataPartner, searchFilter || undefined),
       ]);
       callData = await getOutboundCallsForContacts(contacts.map((c) => c.id));
       generatedAt = new Date().toISOString();
@@ -137,7 +147,7 @@ export async function GET(request) {
 
     const searches = searchLocked
       ? getSearchNamesFromContacts(contacts)
-      : await getPartnerSearchPillsList(partner);
+      : await getPartnerSearchPillsList(dataPartner);
 
     const metrics = computeMetrics(contacts, deals, callData, searchFilter, {
       start: startDate,
@@ -146,7 +156,8 @@ export async function GET(request) {
 
     return Response.json({
       partner: label,
-      partnerKey: partner,
+      partnerKey: dataPartner,
+      isAdmin: resolved.isAdmin,
       searches,
       searchFilter,
       searchLocked,

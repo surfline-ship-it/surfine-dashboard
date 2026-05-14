@@ -1,4 +1,9 @@
-import { createToken, getCredentials } from "@/lib/auth";
+import {
+  createToken,
+  getCredentials,
+  getDistinctCredentialPartners,
+} from "@/lib/auth";
+import { ADMIN_JWT_PARTNER } from "@/lib/adminSession";
 
 function normalizeAccessCode(value) {
   return String(value || "")
@@ -28,10 +33,14 @@ export async function POST(request) {
 
   const token = await createToken(match.partner, match.label, match.search);
 
+  const adminPartnerOptions =
+    match.partner === ADMIN_JWT_PARTNER ? getDistinctCredentialPartners() : undefined;
+
   return Response.json({
     token,
     partner: match.partner,
     label: match.label,
     ...(match.search && { search: match.search }),
+    ...(adminPartnerOptions && { adminPartnerOptions }),
   });
 }

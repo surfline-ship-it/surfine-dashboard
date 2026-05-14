@@ -1,4 +1,4 @@
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, resolveDataPartner } from "@/lib/auth";
 import { canonicalSearchName } from "@/lib/searchNames";
 import { getPartnerDeals, pipelineStageLabel } from "@/lib/hubspot";
 
@@ -56,14 +56,23 @@ export async function POST(request) {
   }
 
   try {
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
+    const resolved = resolveDataPartner(payload, body?.selectedPartner);
+    if (resolved.error || !resolved.dataPartner) {
+      return Response.json(
+        { error: "Bad request", details: resolved.error || "Missing partner scope." },
+        { status: 400 }
+      );
+    }
+    const dataPartner = resolved.dataPartner;
+
     const leads = Array.isArray(body?.leads) ? body.leads : [];
     if (leads.length === 0) {
       return Response.json({ stageByLeadId: {} });
     }
 
     // Single HubSpot deals fetch for the partner, then in-memory matching.
-    const partnerDeals = await getPartnerDeals(partner);
+    const partnerDeals = await getPartnerDeals(dataPartner);
     const stageByLeadId = {};
     leads.forEach((lead) => {
       const id = String(lead?.id || "");

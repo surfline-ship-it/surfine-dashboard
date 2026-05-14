@@ -26,7 +26,14 @@ function sortRows(rows, sortBy, sortDir) {
   });
 }
 
-export default function LeadsView({ token, leadsData, searchLocked, searchFilter, onSearchFilterChange }) {
+export default function LeadsView({
+  token,
+  leadsData,
+  searchLocked,
+  searchFilter,
+  onSearchFilterChange,
+  apiSelectedPartner,
+}) {
   const [dncFilter, setDncFilter] = useState("all");
   const [tierFilter, setTierFilter] = useState("all");
   const [stageFilter, setStageFilter] = useState("all");
@@ -52,6 +59,13 @@ export default function LeadsView({ token, leadsData, searchLocked, searchFilter
   useEffect(() => {
     let active = true;
     async function loadStages() {
+      if (leadsData?.noDncSheet) {
+        if (active) {
+          setStageByLeadId({});
+          setStagesLoading(false);
+        }
+        return;
+      }
       // Render leads immediately; fill stages asynchronously.
       const payloadLeads = scopedBySearch.map((r) => ({
         id: r.id,
@@ -72,7 +86,10 @@ export default function LeadsView({ token, leadsData, searchLocked, searchFilter
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ leads: payloadLeads }),
+          body: JSON.stringify({
+            leads: payloadLeads,
+            ...(apiSelectedPartner ? { selectedPartner: apiSelectedPartner } : {}),
+          }),
         });
         if (!res.ok) throw new Error("Failed to hydrate stages");
         const data = await res.json();
@@ -88,7 +105,7 @@ export default function LeadsView({ token, leadsData, searchLocked, searchFilter
     return () => {
       active = false;
     };
-  }, [token, scopedBySearch]);
+  }, [token, scopedBySearch, leadsData?.noDncSheet, apiSelectedPartner]);
 
   const filtered = useMemo(() => {
     let out = scopedBySearch.map((r) => ({
@@ -142,6 +159,16 @@ export default function LeadsView({ token, leadsData, searchLocked, searchFilter
       setSortDir("asc");
     }
   };
+
+  if (leadsData?.noDncSheet) {
+    return (
+      <div className="leads-view">
+        <div className="leads-no-dnc">
+          {leadsData.noDncSheetMessage || "No DNC list configured for this partner."}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="leads-view">

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useLayoutEffect, useRef } from "react";
 import { canonicalSearchName } from "@/lib/searchNames";
+import { ADMIN_JWT_PARTNER } from "@/lib/adminSession";
 import ViewToggle from "./ViewToggle";
 import LeadsView from "./LeadsView";
 
 const SESSION_VIEW_KEY = "surfline_view_mode";
+const SESSION_ADMIN_PARTNER_KEY = "surfline_admin_selected_partner";
 
 export default function Dashboard({ token, partnerInfo, onLogout }) {
   const [dashboardData, setDashboardData] = useState(null);
@@ -23,6 +25,39 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
     typeof partnerInfo?.search === "string" && partnerInfo.search.trim()
       ? partnerInfo.search.trim()
       : null;
+
+  const isAdmin = partnerInfo?.partner === ADMIN_JWT_PARTNER;
+  const partnerOptions = Array.isArray(partnerInfo?.adminPartnerOptions)
+    ? partnerInfo.adminPartnerOptions
+    : [];
+  const partnerOptionsKey = partnerOptions.join("|");
+
+  const [adminSelectedPartner, setAdminSelectedPartner] = useState(null);
+
+  useLayoutEffect(() => {
+    if (!isAdmin) {
+      setAdminSelectedPartner(null);
+      return;
+    }
+    if (!partnerOptions.length) return;
+    try {
+      const saved = sessionStorage.getItem(SESSION_ADMIN_PARTNER_KEY);
+      const next = saved && partnerOptions.includes(saved) ? saved : partnerOptions[0];
+      setAdminSelectedPartner(next);
+    } catch {
+      setAdminSelectedPartner(partnerOptions[0]);
+    }
+  }, [isAdmin, partnerOptionsKey]);
+
+  const prevAdminPartnerRef = useRef(null);
+  useEffect(() => {
+    if (!isAdmin || !adminSelectedPartner) return;
+    if (prevAdminPartnerRef.current && prevAdminPartnerRef.current !== adminSelectedPartner) {
+      setDashboardData(null);
+      setLeadsData(null);
+    }
+    prevAdminPartnerRef.current = adminSelectedPartner;
+  }, [adminSelectedPartner, isAdmin]);
 
   useEffect(() => {
     try {
@@ -43,6 +78,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
     if (start) params.set("start", start);
     if (end) params.set("end", end);
     if (forceRefresh) params.set("refresh", "1");
+    if (isAdmin && adminSelectedPartner) params.set("selectedPartner", adminSelectedPartner);
     const query = params.toString();
     const url = query ? `/api/dashboard?${query}` : "/api/dashboard";
     const res = await fetch(url, {
@@ -66,12 +102,13 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
       throw new Error(message);
     }
     return res.json();
-  }, [token, onLogout]);
+  }, [token, onLogout, isAdmin, adminSelectedPartner]);
 
   const fetchLeads = useCallback(async (search, forceRefresh = false) => {
     const params = new URLSearchParams();
     if (search) params.set("search", search);
     if (forceRefresh) params.set("refresh", "1");
+    if (isAdmin && adminSelectedPartner) params.set("selectedPartner", adminSelectedPartner);
     const query = params.toString();
     const url = query ? `/api/leads?${query}` : "/api/leads";
     const res = await fetch(url, {
@@ -95,9 +132,10 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
       throw new Error(message);
     }
     return res.json();
-  }, [token, onLogout]);
+  }, [token, onLogout, isAdmin, adminSelectedPartner]);
 
   useEffect(() => {
+    if (isAdmin && !adminSelectedPartner) return;
     let active = true;
     async function load() {
       setLoading(true);
@@ -116,10 +154,11 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
     return () => {
       active = false;
     };
-  }, [fetchDashboard, searchLocked, dashboardSearchFilter, startDate, endDate]);
+  }, [fetchDashboard, searchLocked, dashboardSearchFilter, startDate, endDate, isAdmin, adminSelectedPartner]);
 
   useEffect(() => {
     if (viewMode !== "leads") return;
+    if (isAdmin && !adminSelectedPartner) return;
     let active = true;
     async function load() {
       setLoading(true);
@@ -138,7 +177,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
     return () => {
       active = false;
     };
-  }, [viewMode, fetchLeads, searchLocked, leadsSearchFilter]);
+  }, [viewMode, fetchLeads, searchLocked, leadsSearchFilter, isAdmin, adminSelectedPartner]);
 
   const onForceRefresh = async () => {
     setLoading(true);
@@ -161,6 +200,18 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
   };
 
   const activeData = viewMode === "leads" ? leadsData : dashboardData;
+
+  if (isAdmin && partnerOptions.length === 0) {
+    return (
+      <div className="loading" style={{ flexDirection: "column", gap: 12, textAlign: "center", maxWidth: 480 }}>
+        <div style={{ color: "var(--red)", fontWeight: 600 }}>Admin configuration error</div>
+        <div style={{ color: "var(--gray-600)", fontSize: 13 }}>
+          No partner list was returned for this admin session. Sign out and confirm PARTNER_CREDENTIALS includes
+          partner entries besides the admin account.
+        </div>
+      </div>
+    );
+  }
 
   if (loading && !activeData) {
     return (
@@ -188,10 +239,11 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
 
   if (!activeData) return null;
 
-  const { metrics, partner, generatedAt } = dashboardData || activeData;
+  const partner = activeData.partner;
+  const generatedAt = activeData.generatedAt;
+  const metrics = dashboardData?.metrics;
   const dashboardSearches = dashboardData?.searches || [];
   const leadsSearches = leadsData?.searches || [];
-  const searches = viewMode === "leads" ? leadsSearches : dashboardSearches;
   const dateFilter = dashboardData?.dateFilter || { start: null, end: null };
   const hasDateFilter = Boolean(dateFilter?.start || dateFilter?.end);
   const genDate = new Date(generatedAt);
@@ -208,13 +260,42 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
 
   return (
     <div className="dashboard">
+      {isAdmin && adminSelectedPartner ? (
+        <div className="admin-partner-bar">
+          <span className="admin-partner-bar-brand">Surfline Capital</span>
+          <label className="admin-partner-bar-label" htmlFor="admin-partner-select">
+            View as
+          </label>
+          <select
+            id="admin-partner-select"
+            className="admin-partner-select"
+            value={adminSelectedPartner}
+            onChange={(e) => {
+              const v = e.target.value;
+              setAdminSelectedPartner(v);
+              try {
+                sessionStorage.setItem(SESSION_ADMIN_PARTNER_KEY, v);
+              } catch {}
+              setDashboardSearchFilter(null);
+              setLeadsSearchFilter(null);
+            }}
+          >
+            {partnerOptions.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
       <div className="dash-header">
         <div className="dash-header-left">
           <h1>{partner}</h1>
-          {searchLocked && lockedSearchName ? (
+          {isAdmin && adminSelectedPartner ? (
+            <div className="dash-subtitle">{adminSelectedPartner}</div>
+          ) : searchLocked && lockedSearchName ? (
             <div className="dash-subtitle">{canonicalSearchName(lockedSearchName)}</div>
-          ) : null}
-          {!searchLocked && viewMode === "dashboard" && dashboardSearches.length === 1 ? (
+          ) : !searchLocked && viewMode === "dashboard" && dashboardSearches.length === 1 ? (
             <div className="dash-subtitle">{dashboardSearches[0]}</div>
           ) : null}
           <ViewToggle value={viewMode} onChange={setViewMode} />
@@ -304,6 +385,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
           searchLocked={searchLocked}
           searchFilter={leadsSearchFilter}
           onSearchFilterChange={setLeadsSearchFilter}
+          apiSelectedPartner={isAdmin && adminSelectedPartner ? adminSelectedPartner : null}
         />
       ) : (
         <>

@@ -1,6 +1,6 @@
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, resolveDataPartner } from "@/lib/auth";
 import { canonicalSearchName } from "@/lib/searchNames";
-import { readPartnerDncSheetRows } from "@/lib/googleSheets";
+import { readPartnerDncSheetRows, hasDncSheetForPartner } from "@/lib/googleSheets";
 import {
   getCached,
   setCached,
@@ -47,6 +47,16 @@ export async function GET(request) {
   }
 
   const { searchParams } = new URL(request.url);
+  const selectedPartnerParam = searchParams.get("selectedPartner") || undefined;
+  const resolved = resolveDataPartner(payload, selectedPartnerParam);
+  if (resolved.error) {
+    return Response.json(
+      { error: resolved.isAdmin ? "Bad request" : "Invalid session", details: resolved.error },
+      { status: resolved.isAdmin ? 400 : 401 }
+    );
+  }
+  const dataPartner = resolved.dataPartner;
+
   const searchFromJwt =
     typeof jwtSearch === "string" && jwtSearch.trim() !== "" ? jwtSearch.trim() : null;
   const searchFromQuery = searchParams.get("search");
@@ -57,11 +67,11 @@ export async function GET(request) {
     searchParams.get("refresh") === "true";
 
   try {
-    const key = buildLeadsCacheKey(partner, searchFilter);
+    const key = buildLeadsCacheKey(dataPartner, searchFilter);
     if (forceRefresh) {
       deleteCached(key);
-      invalidatePartnerCaches(partner);
-      console.info("CACHE BUSTED", { scope: "leads", partner, key });
+      invalidatePartnerCaches(dataPartner);
+      console.info("CACHE BUSTED", { scope: "leads", partner: dataPartner, key });
     }
 
     const cached = forceRefresh ? null : getCached(key);
@@ -69,7 +79,23 @@ export async function GET(request) {
       return Response.json(cached);
     }
 
-    const { rows } = await readPartnerDncSheetRows(partner);
+    if (!hasDncSheetForPartner(dataPartner)) {
+      const generatedAt = new Date().toISOString();
+      return Response.json({
+        partner: label,
+        partnerKey: dataPartner,
+        isAdmin: resolved.isAdmin,
+        searchFilter,
+        searchLocked,
+        searches: [],
+        generatedAt,
+        leads: [],
+        noDncSheet: true,
+        noDncSheetMessage: "No DNC list configured for this partner.",
+      });
+    }
+
+    const { rows } = await readPartnerDncSheetRows(dataPartner);
     const searches = Array.from(
       new Set(
         rows
@@ -103,7 +129,8 @@ export async function GET(request) {
     const generatedAt = new Date().toISOString();
     const response = {
       partner: label,
-      partnerKey: partner,
+      partnerKey: dataPartner,
+      isAdmin: resolved.isAdmin,
       searchFilter,
       searchLocked,
       searches,

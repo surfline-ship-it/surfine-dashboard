@@ -106,6 +106,55 @@ body {
   padding: 1.5rem;
 }
 
+.admin-partner-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  background: var(--navy);
+  color: #e8eefc;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-partner-bar-brand {
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.admin-partner-bar-label {
+  font-size: 12px;
+  opacity: 0.88;
+}
+
+.admin-partner-select {
+  min-width: 200px;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.admin-partner-select option {
+  color: var(--gray-900);
+  background: #fff;
+}
+
+.leads-no-dnc {
+  padding: 2rem 1.25rem;
+  text-align: center;
+  font-size: 14px;
+  color: var(--gray-600);
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+}
+
 .dash-header {
   display: flex;
   align-items: flex-start;
