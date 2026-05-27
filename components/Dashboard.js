@@ -418,20 +418,28 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
           <div className="card-row">
             <div className="card">
               <div className="card-title">Email outreach</div>
-              <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 14 }}>
-                <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
-                  <div className="kpi-label">Unique companies in pipeline</div>
-                  <div className="kpi-value sm" style={{ color: "var(--blue)" }}>
-                    {metrics.uniqueCompaniesInPipeline.toLocaleString()}
-                  </div>
-                </div>
+              <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 14 }}>
                 <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
                   <div className="kpi-label">Unique companies emailed</div>
-                  <div className="kpi-value sm">{metrics.uniqueCompaniesEmailed.toLocaleString()}</div>
+                  <div className="kpi-value sm" style={{ color: "var(--blue)" }}>
+                    {metrics.uniqueCompaniesEmailed.toLocaleString()}
+                  </div>
                 </div>
                 <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
                   <div className="kpi-label">Total contacts</div>
                   <div className="kpi-value sm">{metrics.totalContacts.toLocaleString()}</div>
+                </div>
+                <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
+                  <div className="kpi-label">Emails sent</div>
+                  <div className="kpi-value sm">{metrics.emailsSent.toLocaleString()}</div>
+                </div>
+                <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
+                  <div className="kpi-label">Emails opened</div>
+                  <div className="kpi-value sm">{metrics.emailsOpened.toLocaleString()}</div>
+                </div>
+                <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
+                  <div className="kpi-label">Emails replied</div>
+                  <div className="kpi-value sm">{metrics.emailsReplied.toLocaleString()}</div>
                 </div>
               </div>
             </div>
@@ -441,7 +449,9 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
               <div className="kpi-grid" style={{ gridTemplateColumns: "1fr", marginBottom: 14 }}>
                 <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
                   <div className="kpi-label">Total calls made</div>
-                  <div className="kpi-value sm">{metrics.totalCalls.toLocaleString()}</div>
+                  <div className="kpi-value sm">
+                    {Number.isFinite(metrics.totalCalls) ? metrics.totalCalls.toLocaleString() : "—"}
+                  </div>
                 </div>
               </div>
             </div>
@@ -483,7 +493,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
       )}
 
       <div className="dash-footer">
-        Data as of {dateTimeStr} (last {viewMode === "leads" ? "Google Sheet + HubSpot" : "HubSpot"} refresh for this view) · Companies deduplicated by domain across all search lists · Prepared by Surfline Capital
+        Data as of {dateTimeStr} (last {viewMode === "leads" ? "Google Sheet + HubSpot" : "Google Sheet summary + HubSpot"} refresh for this view) · Companies deduplicated by domain across all search lists · Prepared by Surfline Capital
         <div className="dash-footer-actions">
           <button
             type="button"

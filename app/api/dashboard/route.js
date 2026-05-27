@@ -1,4 +1,5 @@
 import { verifyToken, resolveDataPartner } from "@/lib/auth";
+import { canonicalSearchName } from "@/lib/searchNames";
 import {
   getPartnerContacts,
   getPartnerDeals,
@@ -6,6 +7,7 @@ import {
   getSearchNamesFromContacts,
   computeMetrics,
 } from "@/lib/hubspot";
+import { readDashboardStatsRows } from "@/lib/googleSheets";
 import {
   getCached,
   getCacheMeta,
@@ -38,6 +40,32 @@ async function getPartnerSearchPillsList(partner) {
   const searches = getSearchNamesFromContacts(allContacts);
   setCached(pillsKey, { searches });
   return searches;
+}
+
+function aggregateOutreachFromSummary(rows, partner, searchFilter) {
+  const canonicalFilter = searchFilter ? canonicalSearchName(searchFilter) : null;
+  const filtered = (Array.isArray(rows) ? rows : []).filter((r) => {
+    if (String(r.partner || "").trim() !== String(partner || "").trim()) return false;
+    if (!canonicalFilter) return true;
+    return canonicalSearchName(r.searchName) === canonicalFilter;
+  });
+  return filtered.reduce(
+    (acc, r) => {
+      acc.totalContacts += Number(r.totalContacts || 0);
+      acc.uniqueCompanies += Number(r.uniqueCompanies || 0);
+      acc.emailsSent += Number(r.emailsSent || 0);
+      acc.emailsOpened += Number(r.emailsOpened || 0);
+      acc.emailsReplied += Number(r.emailsReplied || 0);
+      return acc;
+    },
+    {
+      totalContacts: 0,
+      uniqueCompanies: 0,
+      emailsSent: 0,
+      emailsOpened: 0,
+      emailsReplied: 0,
+    }
+  );
 }
 
 export async function GET(request) {
@@ -114,11 +142,12 @@ export async function GET(request) {
     let contacts;
     let deals;
     let callData;
+    let outreachStats;
     let generatedAt;
 
     const cached = forceRefresh ? null : getCached(key);
     if (cached) {
-      ({ contacts, deals, callData, generatedAt } = cached);
+      ({ contacts, deals, callData, outreachStats, generatedAt } = cached);
       console.info("Dashboard cache HIT", {
         key,
         cacheTimestamp: generatedAt,
@@ -126,16 +155,35 @@ export async function GET(request) {
         dealsCount: Array.isArray(deals) ? deals.length : 0,
       });
     } else {
-      [contacts, deals] = await Promise.all([
+      const [{ rows: summaryRows }, contactsResult, dealsResult] = await Promise.all([
+        readDashboardStatsRows().catch((error) => {
+          console.warn("Dashboard Stats sheet fetch failed; defaulting outreach stats to zero", {
+            partner: dataPartner,
+            error: error?.message,
+          });
+          return { rows: [] };
+        }),
         getPartnerContacts(dataPartner, searchFilter || undefined),
         getPartnerDeals(dataPartner, searchFilter || undefined),
       ]);
-      callData = await getOutboundCallsForContacts(contacts.map((c) => c.id));
+      contacts = contactsResult;
+      deals = dealsResult;
+      outreachStats = aggregateOutreachFromSummary(summaryRows, dataPartner, searchFilter);
+      try {
+        callData = await getOutboundCallsForContacts(contacts.map((c) => c.id));
+      } catch (error) {
+        console.warn("Cold calls fetch failed; continuing without calls metric", {
+          partner: dataPartner,
+          error: error?.message,
+        });
+        callData = { total: 0, connected: 0, calls: [], unavailable: true };
+      }
       generatedAt = new Date().toISOString();
       setCached(key, {
         contacts,
         deals,
         callData,
+        outreachStats,
         generatedAt,
       });
       console.info("Dashboard cache MISS (fresh HubSpot fetch)", {
@@ -152,7 +200,7 @@ export async function GET(request) {
     const metrics = computeMetrics(contacts, deals, callData, searchFilter, {
       start: startDate,
       end: endDate,
-    });
+    }, outreachStats);
 
     return Response.json({
       partner: label,
