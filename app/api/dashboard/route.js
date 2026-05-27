@@ -169,6 +169,12 @@ export async function GET(request) {
       contacts = contactsResult;
       deals = dealsResult;
       outreachStats = aggregateOutreachFromSummary(summaryRows, dataPartner, searchFilter);
+      console.info("Outreach stats from sheet", {
+        partner: dataPartner,
+        searchFilter: searchFilter || "all",
+        campaignRows: summaryRows.length,
+        matched: outreachStats,
+      });
       try {
         callData = await getOutboundCallsForContacts(contacts.map((c) => c.id));
       } catch (error) {
