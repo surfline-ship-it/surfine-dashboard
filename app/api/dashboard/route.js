@@ -7,7 +7,7 @@ import {
   getSearchNamesFromContacts,
   computeMetrics,
 } from "@/lib/hubspot";
-import { readDashboardStatsRows } from "@/lib/googleSheets";
+import { readDashboardStatsRows, invalidateOutreachSheetCache } from "@/lib/googleSheets";
 import {
   getCached,
   getCacheMeta,
@@ -145,6 +145,7 @@ export async function GET(request) {
     if (forceRefresh) {
       const deletedCurrent = deleteCached(key);
       const deletedPills = deleteCached(pillsKey);
+      invalidateOutreachSheetCache();
       invalidatePartnerCaches(dataPartner);
       console.info("CACHE BUSTED", {
         partner: dataPartner,
