@@ -159,7 +159,7 @@ export async function GET(request) {
     let deals;
     let callData;
     let generatedAt;
-    let outreachMeta = { tab: null, campaignRows: 0 };
+    let outreachMeta = { tab: null, layout: null, campaignRows: 0 };
 
     const cached = forceRefresh ? null : getCached(key);
     if (cached) {
@@ -209,8 +209,8 @@ export async function GET(request) {
       emailsReplied: 0,
     };
     try {
-      const { rows: summaryRows, tab } = await readDashboardStatsRows();
-      outreachMeta = { tab, campaignRows: summaryRows.length };
+      const { rows: summaryRows, tab, layout } = await readDashboardStatsRows();
+      outreachMeta = { tab, layout, campaignRows: summaryRows.length };
       outreachStats = aggregateOutreachFromSummary(summaryRows, dataPartner, searchFilter);
       console.info("Outreach stats from sheet", {
         partner: dataPartner,
