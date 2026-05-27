@@ -42,10 +42,15 @@ async function getPartnerSearchPillsList(partner) {
   return searches;
 }
 
+function normalizePartnerKey(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 function aggregateOutreachFromSummary(rows, partner, searchFilter) {
+  const partnerKey = normalizePartnerKey(partner);
   const canonicalFilter = searchFilter ? canonicalSearchName(searchFilter) : null;
   const filtered = (Array.isArray(rows) ? rows : []).filter((r) => {
-    if (String(r.partner || "").trim() !== String(partner || "").trim()) return false;
+    if (normalizePartnerKey(r.partner) !== partnerKey) return false;
     if (!canonicalFilter) return true;
     return canonicalSearchName(r.searchName) === canonicalFilter;
   });
@@ -87,6 +92,17 @@ export async function GET(request) {
         error: "Failed to load dashboard data",
         details:
           "HUBSPOT_ACCESS_TOKEN is not set. Add it in Vercel Project → Settings → Environment Variables.",
+      },
+      { status: 500 }
+    );
+  }
+
+  if (!process.env.GOOGLE_API_KEY) {
+    return Response.json(
+      {
+        error: "Failed to load dashboard data",
+        details:
+          "GOOGLE_API_KEY is not set. Email outreach metrics require it in Vercel Project → Settings → Environment Variables.",
       },
       { status: 500 }
     );
@@ -142,12 +158,12 @@ export async function GET(request) {
     let contacts;
     let deals;
     let callData;
-    let outreachStats;
     let generatedAt;
+    let outreachMeta = { tab: null, campaignRows: 0 };
 
     const cached = forceRefresh ? null : getCached(key);
     if (cached) {
-      ({ contacts, deals, callData, outreachStats, generatedAt } = cached);
+      ({ contacts, deals, callData, generatedAt } = cached);
       console.info("Dashboard cache HIT", {
         key,
         cacheTimestamp: generatedAt,
@@ -155,26 +171,12 @@ export async function GET(request) {
         dealsCount: Array.isArray(deals) ? deals.length : 0,
       });
     } else {
-      const [{ rows: summaryRows }, contactsResult, dealsResult] = await Promise.all([
-        readDashboardStatsRows().catch((error) => {
-          console.warn("Dashboard Stats sheet fetch failed; defaulting outreach stats to zero", {
-            partner: dataPartner,
-            error: error?.message,
-          });
-          return { rows: [] };
-        }),
+      const [contactsResult, dealsResult] = await Promise.all([
         getPartnerContacts(dataPartner, searchFilter || undefined),
         getPartnerDeals(dataPartner, searchFilter || undefined),
       ]);
       contacts = contactsResult;
       deals = dealsResult;
-      outreachStats = aggregateOutreachFromSummary(summaryRows, dataPartner, searchFilter);
-      console.info("Outreach stats from sheet", {
-        partner: dataPartner,
-        searchFilter: searchFilter || "all",
-        campaignRows: summaryRows.length,
-        matched: outreachStats,
-      });
       try {
         callData = await getOutboundCallsForContacts(contacts.map((c) => c.id));
       } catch (error) {
@@ -189,13 +191,38 @@ export async function GET(request) {
         contacts,
         deals,
         callData,
-        outreachStats,
         generatedAt,
       });
       console.info("Dashboard cache MISS (fresh HubSpot fetch)", {
         key,
         cacheTimestamp: generatedAt,
         dealsCount: Array.isArray(deals) ? deals.length : 0,
+      });
+    }
+
+    // Always load outreach from Google Sheets (not cached with HubSpot — avoids stale zeros).
+    let outreachStats = {
+      totalContacts: 0,
+      uniqueCompanies: 0,
+      emailsSent: 0,
+      emailsOpened: 0,
+      emailsReplied: 0,
+    };
+    try {
+      const { rows: summaryRows, tab } = await readDashboardStatsRows();
+      outreachMeta = { tab, campaignRows: summaryRows.length };
+      outreachStats = aggregateOutreachFromSummary(summaryRows, dataPartner, searchFilter);
+      console.info("Outreach stats from sheet", {
+        partner: dataPartner,
+        searchFilter: searchFilter || "all",
+        tab,
+        campaignRows: summaryRows.length,
+        matched: outreachStats,
+      });
+    } catch (error) {
+      console.error("Outreach sheet load failed", {
+        partner: dataPartner,
+        error: error?.message,
       });
     }
 
@@ -217,6 +244,7 @@ export async function GET(request) {
       searchLocked,
       dateFilter: { start: startDate, end: endDate },
       metrics,
+      outreachSource: outreachMeta,
       /** ISO time when HubSpot data for this view was last fetched (cache write time). */
       generatedAt,
     });
