@@ -20,6 +20,7 @@ const CACHE_VERSION =
   process.env.CACHE_VERSION ||
   process.env.VERCEL_GIT_COMMIT_SHA ||
   "v1";
+const CALLS_REFRESH_TTL_MS = 2 * 60 * 1000;
 
 function cacheKey(partner, searchFilter, startDate, endDate) {
   const searchPart = searchFilter || "all";
@@ -205,17 +206,47 @@ export async function GET(request) {
     let deals;
     let callData;
     let generatedAt;
+    let callsGeneratedAt = null;
     let outreachMeta = { tab: null, layout: null, campaignRows: 0 };
 
     const cached = forceRefresh ? null : getCached(key);
     if (cached) {
-      ({ contacts, deals, callData, generatedAt } = cached);
+      ({ contacts, deals, callData, generatedAt, callsGeneratedAt } = cached);
       console.info("Dashboard cache HIT", {
         key,
         cacheTimestamp: generatedAt,
         cacheMeta: getCacheMeta(key),
         dealsCount: Array.isArray(deals) ? deals.length : 0,
       });
+
+      const callsAgeMs = callsGeneratedAt ? Date.now() - Date.parse(callsGeneratedAt) : Number.POSITIVE_INFINITY;
+      const callsStale = !Number.isFinite(callsAgeMs) || callsAgeMs > CALLS_REFRESH_TTL_MS;
+      if (callsStale) {
+        try {
+          callData = await getOutboundCallsForContacts((contacts || []).map((c) => c.id));
+          callsGeneratedAt = new Date().toISOString();
+          setCached(key, {
+            contacts,
+            deals,
+            callData,
+            generatedAt,
+            callsGeneratedAt,
+          });
+          console.info("Cold calls refreshed from HubSpot", {
+            key,
+            callsGeneratedAt,
+            callsAgeMs: Number.isFinite(callsAgeMs) ? callsAgeMs : null,
+            totalCalls: callData?.total,
+          });
+        } catch (error) {
+          console.warn("Cold calls refresh failed; using cached call stats", {
+            partner: dataPartner,
+            key,
+            callsGeneratedAt,
+            error: error?.message,
+          });
+        }
+      }
     } else {
       const [contactsResult, dealsResult] = await Promise.all([
         getPartnerContacts(dataPartner, searchFilter || undefined),
@@ -233,11 +264,13 @@ export async function GET(request) {
         callData = { total: 0, connected: 0, calls: [], unavailable: true };
       }
       generatedAt = new Date().toISOString();
+      callsGeneratedAt = generatedAt;
       setCached(key, {
         contacts,
         deals,
         callData,
         generatedAt,
+        callsGeneratedAt,
       });
       console.info("Dashboard cache MISS (fresh HubSpot fetch)", {
         key,
