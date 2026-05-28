@@ -467,7 +467,12 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
                       <li key={d.id} className="pipeline-deal-item">
                         {row.isPassedRow ? (
                           <details className="pipeline-passed-details">
-                            <summary className="pipeline-deal-line">{d.displayLine}</summary>
+                            <summary className="pipeline-deal-line">
+                              {d.displayLine}
+                              {d.stageEnteredLabel ? (
+                                <span className="pipeline-deal-date"> · {d.stageEnteredLabel}</span>
+                              ) : null}
+                            </summary>
                             {d.partnerPassedStage ? (
                               <div className="pipeline-deal-meta">Passed: {d.partnerPassedStage}</div>
                             ) : null}
@@ -476,7 +481,12 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
                             ) : null}
                           </details>
                         ) : (
-                          <div className="pipeline-deal-line">{d.displayLine}</div>
+                          <div className="pipeline-deal-line">
+                            {d.displayLine}
+                            {d.stageEnteredLabel ? (
+                              <span className="pipeline-deal-date"> · {d.stageEnteredLabel}</span>
+                            ) : null}
+                          </div>
                         )}
                       </li>
                     ))}
