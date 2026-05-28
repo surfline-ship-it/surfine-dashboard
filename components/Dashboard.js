@@ -434,10 +434,6 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
                   <div className="kpi-value sm">{metrics.emailsSent.toLocaleString()}</div>
                 </div>
                 <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
-                  <div className="kpi-label">Emails opened</div>
-                  <div className="kpi-value sm">{metrics.emailsOpened.toLocaleString()}</div>
-                </div>
-                <div className="kpi" style={{ padding: "0.5rem 0.75rem" }}>
                   <div className="kpi-label">Emails replied</div>
                   <div className="kpi-value sm">{metrics.emailsReplied.toLocaleString()}</div>
                 </div>
