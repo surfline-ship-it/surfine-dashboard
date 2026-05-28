@@ -46,15 +46,60 @@ function normalizePartnerKey(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function normalizeLooseKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function keysLikelyMatch(left, right) {
+  if (!left || !right) return false;
+  if (left === right) return true;
+  return left.includes(right) || right.includes(left);
+}
+
 function aggregateOutreachFromSummary(rows, partner, searchFilter) {
   const partnerKey = normalizePartnerKey(partner);
+  const partnerLoose = normalizeLooseKey(partner);
   const canonicalFilter = searchFilter ? canonicalSearchName(searchFilter) : null;
-  const filtered = (Array.isArray(rows) ? rows : []).filter((r) => {
+  const allRows = Array.isArray(rows) ? rows : [];
+  const filtered = allRows.filter((r) => {
     if (normalizePartnerKey(r.partner) !== partnerKey) return false;
     if (!canonicalFilter) return true;
     return canonicalSearchName(r.searchName) === canonicalFilter;
   });
-  return filtered.reduce(
+  const fallbackFiltered =
+    filtered.length > 0
+      ? filtered
+      : allRows.filter((r) => {
+          const rowPartnerLoose = normalizeLooseKey(r.partner);
+          if (!keysLikelyMatch(rowPartnerLoose, partnerLoose)) return false;
+          if (!canonicalFilter) return true;
+          const rowSearchLoose = normalizeLooseKey(canonicalSearchName(r.searchName));
+          const filterLoose = normalizeLooseKey(canonicalFilter);
+          return keysLikelyMatch(rowSearchLoose, filterLoose);
+        });
+  const usedFallback = filtered.length === 0 && fallbackFiltered.length > 0;
+  if (usedFallback) {
+    console.warn("Outreach stats used fallback matching", {
+      partner,
+      searchFilter: searchFilter || "all",
+      fallbackMatchCount: fallbackFiltered.length,
+    });
+  }
+  if (filtered.length === 0 && fallbackFiltered.length === 0 && allRows.length > 0) {
+    const sheetPartners = Array.from(
+      new Set(allRows.map((r) => String(r.partner || "").trim()).filter(Boolean))
+    ).slice(0, 20);
+    console.warn("Outreach stats matched zero rows", {
+      partner,
+      searchFilter: searchFilter || "all",
+      sampleSheetPartners: sheetPartners,
+    });
+  }
+  return fallbackFiltered.reduce(
     (acc, r) => {
       acc.totalContacts += Number(r.totalContacts || 0);
       acc.uniqueCompanies += Number(r.uniqueCompanies || 0);
