@@ -52,10 +52,11 @@ function PipelineDealItem({ deal, isPassedRow }) {
     <details
       className={`pipeline-deal-details${isPassedRow ? " pipeline-passed-details" : ""}`}
     >
-      <summary className="pipeline-deal-line">
-        {deal.displayLine}
-        <PipelineDealDates deal={deal} />
-        <span className="pipeline-deal-financials-hint"> · Financials</span>
+      <summary className="pipeline-deal-summary">
+        <span className="pipeline-deal-summary-text">
+          {deal.displayLine}
+          <PipelineDealDates deal={deal} />
+        </span>
         <span className="pipeline-deal-chevron" aria-hidden="true" />
       </summary>
       <div className="pipeline-deal-drawer">

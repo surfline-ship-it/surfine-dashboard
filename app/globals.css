@@ -444,8 +444,6 @@ body {
 }
 
 .pipeline-deal-details summary {
-  cursor: pointer;
-  font-weight: 500;
   list-style: none;
 }
 
@@ -453,32 +451,51 @@ body {
   display: none;
 }
 
+.pipeline-deal-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.pipeline-deal-summary-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 500;
+}
+
 .pipeline-deal-chevron {
-  display: inline-block;
-  margin-left: 5px;
-  color: var(--gray-400);
-  font-size: 10px;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+  border-radius: 4px;
+  color: var(--gray-600);
+  font-size: 16px;
+  font-weight: 700;
   line-height: 1;
-  vertical-align: 1px;
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 
 .pipeline-deal-chevron::before {
-  content: "▸";
+  content: "›";
+  display: block;
+  margin-top: -1px;
 }
 
 .pipeline-deal-details[open] .pipeline-deal-chevron {
   transform: rotate(90deg);
 }
 
-.pipeline-deal-details summary:hover .pipeline-deal-chevron {
-  color: var(--gray-600);
-}
-
-.pipeline-deal-financials-hint {
-  color: var(--gray-500);
-  font-weight: 400;
-  white-space: nowrap;
+.pipeline-deal-summary:hover .pipeline-deal-chevron {
+  color: var(--gray-800);
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .pipeline-deal-drawer {
