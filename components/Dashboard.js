@@ -24,6 +24,62 @@ function PipelineDealDates({ deal }) {
   );
 }
 
+function PipelineDealFinancials({ deal }) {
+  if (!deal.hasFinancials) return null;
+  return (
+    <div className="pipeline-deal-financials">
+      {deal.estimatedRevenue ? (
+        <div className="pipeline-deal-financials-item">
+          <span className="pipeline-deal-financials-label">Revenue</span>
+          <span className="pipeline-deal-financials-value">{deal.estimatedRevenue}</span>
+        </div>
+      ) : null}
+      {deal.estimatedEbitda ? (
+        <div className="pipeline-deal-financials-item">
+          <span className="pipeline-deal-financials-label">EBITDA</span>
+          <span className="pipeline-deal-financials-value">{deal.estimatedEbitda}</span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function PipelineDealItem({ deal, isPassedRow }) {
+  const expandable = isPassedRow || deal.hasFinancials;
+
+  if (!expandable) {
+    return (
+      <div className="pipeline-deal-line">
+        {deal.displayLine}
+        <PipelineDealDates deal={deal} />
+      </div>
+    );
+  }
+
+  return (
+    <details
+      className={`pipeline-deal-details${isPassedRow ? " pipeline-passed-details" : ""}`}
+    >
+      <summary className="pipeline-deal-line">
+        {deal.displayLine}
+        <PipelineDealDates deal={deal} />
+        {deal.hasFinancials ? (
+          <span className="pipeline-deal-financials-hint"> · Financials</span>
+        ) : null}
+      </summary>
+      <div className="pipeline-deal-drawer">
+        <PipelineDealFinancials deal={deal} />
+        {isPassedRow && deal.partnerPassedStage ? (
+          <div className="pipeline-deal-meta">Passed: {deal.partnerPassedStage}</div>
+        ) : null}
+        {isPassedRow && deal.passedReason ? (
+          <div className="pipeline-deal-meta">Reason: {deal.passedReason}</div>
+        ) : null}
+      </div>
+    </details>
+  );
+}
+
 export default function Dashboard({ token, partnerInfo, onLogout }) {
   const [dashboardData, setDashboardData] = useState(null);
   const [leadsData, setLeadsData] = useState(null);
@@ -480,25 +536,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
                   <ul className="pipeline-deal-list">
                     {row.deals.map((d) => (
                       <li key={d.id} className="pipeline-deal-item">
-                        {row.isPassedRow ? (
-                          <details className="pipeline-passed-details">
-                            <summary className="pipeline-deal-line">
-                              {d.displayLine}
-                              <PipelineDealDates deal={d} />
-                            </summary>
-                            {d.partnerPassedStage ? (
-                              <div className="pipeline-deal-meta">Passed: {d.partnerPassedStage}</div>
-                            ) : null}
-                            {d.passedReason ? (
-                              <div className="pipeline-deal-meta">Reason: {d.passedReason}</div>
-                            ) : null}
-                          </details>
-                        ) : (
-                          <div className="pipeline-deal-line">
-                            {d.displayLine}
-                            <PipelineDealDates deal={d} />
-                          </div>
-                        )}
+                        <PipelineDealItem deal={d} isPassedRow={row.isPassedRow} />
                       </li>
                     ))}
                   </ul>
