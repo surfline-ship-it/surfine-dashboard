@@ -453,6 +453,25 @@ body {
   display: none;
 }
 
+.pipeline-deal-details summary::after {
+  content: "▸";
+  display: inline-block;
+  margin-left: 5px;
+  color: var(--gray-400);
+  font-size: 10px;
+  line-height: 1;
+  vertical-align: 1px;
+  transition: transform 0.15s ease;
+}
+
+.pipeline-deal-details[open] summary::after {
+  transform: rotate(90deg);
+}
+
+.pipeline-deal-details summary:hover::after {
+  color: var(--gray-600);
+}
+
 .pipeline-deal-financials-hint {
   color: var(--gray-500);
   font-weight: 400;
