@@ -9,6 +9,21 @@ import LeadsView from "./LeadsView";
 const SESSION_VIEW_KEY = "surfline_view_mode";
 const SESSION_ADMIN_PARTNER_KEY = "surfline_admin_selected_partner";
 
+function PipelineDealDates({ deal }) {
+  const { pipelineEnteredLabel, statusUpdatedLabel } = deal;
+  if (!pipelineEnteredLabel && !statusUpdatedLabel) return null;
+  return (
+    <>
+      {pipelineEnteredLabel ? (
+        <span className="pipeline-deal-date"> · In pipeline {pipelineEnteredLabel}</span>
+      ) : null}
+      {statusUpdatedLabel ? (
+        <span className="pipeline-deal-date"> · Updated {statusUpdatedLabel}</span>
+      ) : null}
+    </>
+  );
+}
+
 export default function Dashboard({ token, partnerInfo, onLogout }) {
   const [dashboardData, setDashboardData] = useState(null);
   const [leadsData, setLeadsData] = useState(null);
@@ -469,9 +484,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
                           <details className="pipeline-passed-details">
                             <summary className="pipeline-deal-line">
                               {d.displayLine}
-                              {d.stageEnteredLabel ? (
-                                <span className="pipeline-deal-date"> · {d.stageEnteredLabel}</span>
-                              ) : null}
+                              <PipelineDealDates deal={d} />
                             </summary>
                             {d.partnerPassedStage ? (
                               <div className="pipeline-deal-meta">Passed: {d.partnerPassedStage}</div>
@@ -483,9 +496,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
                         ) : (
                           <div className="pipeline-deal-line">
                             {d.displayLine}
-                            {d.stageEnteredLabel ? (
-                              <span className="pipeline-deal-date"> · {d.stageEnteredLabel}</span>
-                            ) : null}
+                            <PipelineDealDates deal={d} />
                           </div>
                         )}
                       </li>
