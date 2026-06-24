@@ -453,8 +453,7 @@ body {
   display: none;
 }
 
-.pipeline-deal-details summary::after {
-  content: "▸";
+.pipeline-deal-chevron {
   display: inline-block;
   margin-left: 5px;
   color: var(--gray-400);
@@ -464,11 +463,15 @@ body {
   transition: transform 0.15s ease;
 }
 
-.pipeline-deal-details[open] summary::after {
+.pipeline-deal-chevron::before {
+  content: "▸";
+}
+
+.pipeline-deal-details[open] .pipeline-deal-chevron {
   transform: rotate(90deg);
 }
 
-.pipeline-deal-details summary:hover::after {
+.pipeline-deal-details summary:hover .pipeline-deal-chevron {
   color: var(--gray-600);
 }
 
@@ -512,6 +515,11 @@ body {
   font-size: 12px;
   font-weight: 600;
   line-height: 1.3;
+}
+
+.pipeline-deal-financials-value.is-empty {
+  color: var(--gray-400);
+  font-weight: 500;
 }
 
 .pipeline-deal-drawer .pipeline-deal-meta:first-child {

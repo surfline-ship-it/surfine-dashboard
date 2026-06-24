@@ -25,37 +25,29 @@ function PipelineDealDates({ deal }) {
 }
 
 function PipelineDealFinancials({ deal }) {
-  if (!deal.hasFinancials) return null;
   return (
     <div className="pipeline-deal-financials">
-      {deal.estimatedRevenue ? (
-        <div className="pipeline-deal-financials-item">
-          <span className="pipeline-deal-financials-label">Revenue</span>
-          <span className="pipeline-deal-financials-value">{deal.estimatedRevenue}</span>
-        </div>
-      ) : null}
-      {deal.estimatedEbitda ? (
-        <div className="pipeline-deal-financials-item">
-          <span className="pipeline-deal-financials-label">EBITDA</span>
-          <span className="pipeline-deal-financials-value">{deal.estimatedEbitda}</span>
-        </div>
-      ) : null}
+      <div className="pipeline-deal-financials-item">
+        <span className="pipeline-deal-financials-label">Revenue</span>
+        <span
+          className={`pipeline-deal-financials-value${deal.estimatedRevenue ? "" : " is-empty"}`}
+        >
+          {deal.estimatedRevenue || "—"}
+        </span>
+      </div>
+      <div className="pipeline-deal-financials-item">
+        <span className="pipeline-deal-financials-label">EBITDA</span>
+        <span
+          className={`pipeline-deal-financials-value${deal.estimatedEbitda ? "" : " is-empty"}`}
+        >
+          {deal.estimatedEbitda || "—"}
+        </span>
+      </div>
     </div>
   );
 }
 
 function PipelineDealItem({ deal, isPassedRow }) {
-  const expandable = isPassedRow || deal.hasFinancials;
-
-  if (!expandable) {
-    return (
-      <div className="pipeline-deal-line">
-        {deal.displayLine}
-        <PipelineDealDates deal={deal} />
-      </div>
-    );
-  }
-
   return (
     <details
       className={`pipeline-deal-details${isPassedRow ? " pipeline-passed-details" : ""}`}
@@ -63,9 +55,8 @@ function PipelineDealItem({ deal, isPassedRow }) {
       <summary className="pipeline-deal-line">
         {deal.displayLine}
         <PipelineDealDates deal={deal} />
-        {deal.hasFinancials ? (
-          <span className="pipeline-deal-financials-hint"> · Financials</span>
-        ) : null}
+        <span className="pipeline-deal-financials-hint"> · Financials</span>
+        <span className="pipeline-deal-chevron" aria-hidden="true" />
       </summary>
       <div className="pipeline-deal-drawer">
         <PipelineDealFinancials deal={deal} />
