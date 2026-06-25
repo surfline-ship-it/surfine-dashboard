@@ -146,6 +146,7 @@ export default function LeadsView({
     "Qualification Call Booking",
     "Teaser Sent",
     "Partner Discussions",
+    "Partner Discussions - Longterm",
     "Passed",
     "Closed Won",
     "No Deal",

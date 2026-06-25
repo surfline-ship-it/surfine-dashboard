@@ -6,6 +6,7 @@ import {
   getOutboundCallsForContacts,
   getSearchNamesFromContacts,
   computeMetrics,
+  hydratePipelineStageConfig,
 } from "@/lib/hubspot";
 import { readDashboardStatsRows, invalidateOutreachSheetCache } from "@/lib/googleSheets";
 import {
@@ -308,6 +309,8 @@ export async function GET(request) {
     const searches = searchLocked
       ? getSearchNamesFromContacts(contacts)
       : await getPartnerSearchPillsList(dataPartner);
+
+    await hydratePipelineStageConfig();
 
     const metrics = computeMetrics(contacts, deals, callData, searchFilter, {
       start: startDate,

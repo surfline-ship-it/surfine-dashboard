@@ -473,7 +473,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
               <div className="kpi-value" style={{ color: "var(--green)" }}>
                 {metrics.totalActiveDeals.toLocaleString()}
               </div>
-              <div className="kpi-sub">Intro Meeting Held, Partner Discussions, or Closed Won</div>
+              <div className="kpi-sub">Intro Meeting Held, Partner Discussions, Longterm, or Closed Won</div>
             </div>
           </div>
 
