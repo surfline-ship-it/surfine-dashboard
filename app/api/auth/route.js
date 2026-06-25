@@ -4,14 +4,10 @@ import {
   getDistinctCredentialPartners,
 } from "@/lib/auth";
 import { ADMIN_JWT_PARTNER } from "@/lib/adminSession";
-
-function normalizeAccessCode(value) {
-  return String(value || "")
-    .normalize("NFKC")
-    .replace(/[\u2010-\u2015\u2212]/g, "-")
-    .trim()
-    .toLowerCase();
-}
+import {
+  normalizeAccessCode,
+  resolveAccessCredential,
+} from "@/lib/searchCredentials";
 
 export async function POST(request) {
   const { password } = await request.json();
@@ -21,11 +17,7 @@ export async function POST(request) {
     return Response.json({ error: "Password required" }, { status: 400 });
   }
 
-  const credentials = getCredentials();
-  const normalizedCredentials = Object.fromEntries(
-    Object.entries(credentials).map(([key, value]) => [normalizeAccessCode(key), value])
-  );
-  const match = normalizedCredentials[normalizedPassword];
+  const match = resolveAccessCredential(normalizedPassword, getCredentials());
 
   if (!match) {
     return Response.json({ error: "Invalid password" }, { status: 401 });

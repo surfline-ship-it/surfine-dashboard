@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Dashboard from "@/components/Dashboard";
+import { normalizeAccessCode } from "@/lib/searchCredentials";
 
 export default function Home() {
   const [token, setToken] = useState(null);
@@ -36,11 +37,7 @@ export default function Home() {
     setLoading(true);
 
     try {
-      const submittedPassword = password
-        .normalize("NFKC")
-        .replace(/[\u2010-\u2015\u2212]/g, "-")
-        .trim()
-        .toLowerCase();
+      const submittedPassword = normalizeAccessCode(password);
       const res = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
