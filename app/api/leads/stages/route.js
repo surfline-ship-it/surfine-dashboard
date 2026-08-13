@@ -1,6 +1,6 @@
 import { verifyToken, resolveDataPartner } from "@/lib/auth";
 import { canonicalSearchName } from "@/lib/searchNames";
-import { getPartnerDeals, pipelineStageLabel } from "@/lib/hubspot";
+import { getPartnersDeals, pipelineStageLabel } from "@/lib/hubspot";
 
 function normalizeText(v) {
   return String(v || "").toLowerCase().trim();
@@ -10,11 +10,20 @@ function stageForLead(lead, partnerDeals) {
   const leadSearch = canonicalSearchName(lead.searchName);
   const leadCompany = normalizeText(lead.companyName);
   const leadDomain = normalizeText(lead.domain);
+  const leadPartner = String(lead.partner || "").trim();
 
-  const sameSearchDeals = partnerDeals.filter(
+  const partnerScoped = leadPartner
+    ? partnerDeals.filter((d) => {
+        const p = d.properties || {};
+        return p.pepartner === leadPartner || p.pe_partner === leadPartner;
+      })
+    : partnerDeals;
+  const dealPool = partnerScoped.length > 0 ? partnerScoped : partnerDeals;
+
+  const sameSearchDeals = dealPool.filter(
     (d) => canonicalSearchName(d.properties?.search_name) === leadSearch
   );
-  const candidates = sameSearchDeals.length ? sameSearchDeals : partnerDeals;
+  const candidates = sameSearchDeals.length ? sameSearchDeals : dealPool;
   if (candidates.length === 0) return "-";
 
   const byMatch = candidates.filter((d) => {
@@ -64,15 +73,17 @@ export async function POST(request) {
         { status: 400 }
       );
     }
-    const dataPartner = resolved.dataPartner;
+    const partnerList =
+      Array.isArray(resolved.partnerList) && resolved.partnerList.length > 0
+        ? resolved.partnerList
+        : [resolved.dataPartner];
 
     const leads = Array.isArray(body?.leads) ? body.leads : [];
     if (leads.length === 0) {
       return Response.json({ stageByLeadId: {} });
     }
 
-    // Single HubSpot deals fetch for the partner, then in-memory matching.
-    const partnerDeals = await getPartnerDeals(dataPartner);
+    const partnerDeals = await getPartnersDeals(partnerList);
     const stageByLeadId = {};
     leads.forEach((lead) => {
       const id = String(lead?.id || "");
