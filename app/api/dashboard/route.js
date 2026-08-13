@@ -1,13 +1,14 @@
-import { verifyToken, resolveDataPartner } from "@/lib/auth";
+import { verifyToken, resolveDataPartner, getDistinctCredentialPartners } from "@/lib/auth";
 import { canonicalSearchName } from "@/lib/searchNames";
 import {
   getPartnerContacts,
-  getPartnerDeals,
+  getPartnersContactsAndDeals,
   getOutboundCallsForContacts,
   getSearchNamesFromContacts,
   computeMetrics,
   hydratePipelineStageConfig,
 } from "@/lib/hubspot";
+import { ADMIN_JWT_PARTNER } from "@/lib/adminSession";
 import { readDashboardStatsRows, invalidateOutreachSheetCache } from "@/lib/googleSheets";
 import {
   getCached,
@@ -34,7 +35,12 @@ function searchPillsCacheKey(partner) {
   return `${CACHE_VERSION}::${partner}::__search_pills__`;
 }
 
-async function getPartnerSearchPillsList(partner) {
+async function getPartnerSearchPillsList(partnerOrList) {
+  if (Array.isArray(partnerOrList)) {
+    const lists = await Promise.all(partnerOrList.map((p) => getPartnerSearchPillsList(p)));
+    return Array.from(new Set(lists.flat().filter(Boolean))).sort((a, b) => a.localeCompare(b));
+  }
+  const partner = partnerOrList;
   const pillsKey = searchPillsCacheKey(partner);
   const hit = getCached(pillsKey);
   if (hit) return hit.searches;
@@ -63,10 +69,36 @@ function keysLikelyMatch(left, right) {
 }
 
 function aggregateOutreachFromSummary(rows, partner, searchFilter) {
+  const allRows = Array.isArray(rows) ? rows : [];
+  // Admin "All partners" view: sum every sheet row (optionally by search).
+  if (partner === "ALL") {
+    const canonicalFilter = searchFilter ? canonicalSearchName(searchFilter) : null;
+    const filtered = allRows.filter((r) => {
+      if (!canonicalFilter) return true;
+      return canonicalSearchName(r.searchName) === canonicalFilter;
+    });
+    return filtered.reduce(
+      (acc, r) => {
+        acc.totalContacts += Number(r.totalContacts || 0);
+        acc.uniqueCompanies += Number(r.uniqueCompanies || 0);
+        acc.emailsSent += Number(r.emailsSent || 0);
+        acc.emailsOpened += Number(r.emailsOpened || 0);
+        acc.emailsReplied += Number(r.emailsReplied || 0);
+        return acc;
+      },
+      {
+        totalContacts: 0,
+        uniqueCompanies: 0,
+        emailsSent: 0,
+        emailsOpened: 0,
+        emailsReplied: 0,
+      }
+    );
+  }
+
   const partnerKey = normalizePartnerKey(partner);
   const partnerLoose = normalizeLooseKey(partner);
   const canonicalFilter = searchFilter ? canonicalSearchName(searchFilter) : null;
-  const allRows = Array.isArray(rows) ? rows : [];
   const filtered = allRows.filter((r) => {
     if (normalizePartnerKey(r.partner) !== partnerKey) return false;
     if (!canonicalFilter) return true;
@@ -173,6 +205,13 @@ export async function GET(request) {
     );
   }
   const dataPartner = resolved.dataPartner;
+  const partnerList =
+    Array.isArray(resolved.partnerList) && resolved.partnerList.length > 0
+      ? resolved.partnerList
+      : dataPartner === ADMIN_JWT_PARTNER
+        ? getDistinctCredentialPartners()
+        : [dataPartner];
+  const allPartners = Boolean(resolved.allPartners);
   const searchFromJwt =
     typeof jwtSearch === "string" && jwtSearch.trim() !== "" ? jwtSearch.trim() : null;
   const searchFromQuery = searchParams.get("search");
@@ -194,8 +233,12 @@ export async function GET(request) {
       const deletedPills = deleteCached(pillsKey);
       invalidateOutreachSheetCache();
       invalidatePartnerCaches(dataPartner);
+      if (allPartners) {
+        partnerList.forEach((p) => invalidatePartnerCaches(p));
+      }
       console.info("CACHE BUSTED", {
         partner: dataPartner,
+        partnerList,
         key,
         deletedCurrent,
         deletedPills,
@@ -220,9 +263,10 @@ export async function GET(request) {
         dealsCount: Array.isArray(deals) ? deals.length : 0,
       });
 
+      // Skip cold-call refresh for All-partners view (expensive; Activity Report removed).
       const callsAgeMs = callsGeneratedAt ? Date.now() - Date.parse(callsGeneratedAt) : Number.POSITIVE_INFINITY;
       const callsStale = !Number.isFinite(callsAgeMs) || callsAgeMs > CALLS_REFRESH_TTL_MS;
-      if (callsStale) {
+      if (callsStale && !allPartners) {
         try {
           callData = await getOutboundCallsForContacts((contacts || []).map((c) => c.id));
           callsGeneratedAt = new Date().toISOString();
@@ -249,20 +293,22 @@ export async function GET(request) {
         }
       }
     } else {
-      const [contactsResult, dealsResult] = await Promise.all([
-        getPartnerContacts(dataPartner, searchFilter || undefined),
-        getPartnerDeals(dataPartner, searchFilter || undefined),
-      ]);
-      contacts = contactsResult;
-      deals = dealsResult;
-      try {
-        callData = await getOutboundCallsForContacts(contacts.map((c) => c.id));
-      } catch (error) {
-        console.warn("Cold calls fetch failed; continuing without calls metric", {
-          partner: dataPartner,
-          error: error?.message,
-        });
+      const hubspot = await getPartnersContactsAndDeals(partnerList, searchFilter || undefined);
+      contacts = hubspot.contacts;
+      deals = hubspot.deals;
+      if (allPartners) {
+        // All-partners view focuses on pipeline KPIs; skip per-contact call crawl.
         callData = { total: 0, connected: 0, calls: [], unavailable: true };
+      } else {
+        try {
+          callData = await getOutboundCallsForContacts(contacts.map((c) => c.id));
+        } catch (error) {
+          console.warn("Cold calls fetch failed; continuing without calls metric", {
+            partner: dataPartner,
+            error: error?.message,
+          });
+          callData = { total: 0, connected: 0, calls: [], unavailable: true };
+        }
       }
       generatedAt = new Date().toISOString();
       callsGeneratedAt = generatedAt;
@@ -276,6 +322,7 @@ export async function GET(request) {
       console.info("Dashboard cache MISS (fresh HubSpot fetch)", {
         key,
         cacheTimestamp: generatedAt,
+        partnerList,
         dealsCount: Array.isArray(deals) ? deals.length : 0,
       });
     }
@@ -308,7 +355,7 @@ export async function GET(request) {
 
     const searches = searchLocked
       ? getSearchNamesFromContacts(contacts)
-      : await getPartnerSearchPillsList(dataPartner);
+      : await getPartnerSearchPillsList(allPartners ? partnerList : dataPartner);
 
     await hydratePipelineStageConfig();
 
@@ -321,6 +368,7 @@ export async function GET(request) {
       partner: label,
       partnerKey: dataPartner,
       isAdmin: resolved.isAdmin,
+      allPartners,
       searches,
       searchFilter,
       searchLocked,

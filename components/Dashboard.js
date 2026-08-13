@@ -93,7 +93,8 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
   const partnerOptions = Array.isArray(partnerInfo?.adminPartnerOptions)
     ? partnerInfo.adminPartnerOptions
     : [];
-  const partnerOptionsKey = partnerOptions.join("|");
+  const adminSelectOptions = isAdmin ? [ADMIN_JWT_PARTNER, ...partnerOptions] : [];
+  const partnerOptionsKey = adminSelectOptions.join("|");
 
   const [adminSelectedPartner, setAdminSelectedPartner] = useState(null);
 
@@ -102,13 +103,13 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
       setAdminSelectedPartner(null);
       return;
     }
-    if (!partnerOptions.length) return;
+    if (!adminSelectOptions.length) return;
     try {
       const saved = sessionStorage.getItem(SESSION_ADMIN_PARTNER_KEY);
-      const next = saved && partnerOptions.includes(saved) ? saved : partnerOptions[0];
+      const next = saved && adminSelectOptions.includes(saved) ? saved : ADMIN_JWT_PARTNER;
       setAdminSelectedPartner(next);
     } catch {
-      setAdminSelectedPartner(partnerOptions[0]);
+      setAdminSelectedPartner(ADMIN_JWT_PARTNER);
     }
   }, [isAdmin, partnerOptionsKey]);
 
@@ -343,9 +344,9 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
               setLeadsSearchFilter(null);
             }}
           >
-            {partnerOptions.map((p) => (
+            {adminSelectOptions.map((p) => (
               <option key={p} value={p}>
-                {p}
+                {p === ADMIN_JWT_PARTNER ? "All" : p}
               </option>
             ))}
           </select>
@@ -355,7 +356,9 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
         <div className="dash-header-left">
           <h1>{partner}</h1>
           {isAdmin && adminSelectedPartner ? (
-            <div className="dash-subtitle">{adminSelectedPartner}</div>
+            <div className="dash-subtitle">
+              {adminSelectedPartner === ADMIN_JWT_PARTNER ? "All partners" : adminSelectedPartner}
+            </div>
           ) : searchLocked && lockedSearchName ? (
             <div className="dash-subtitle">{canonicalSearchName(lockedSearchName)}</div>
           ) : !searchLocked && viewMode === "dashboard" && dashboardSearches.length === 1 ? (
