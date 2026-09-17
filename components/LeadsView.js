@@ -143,7 +143,7 @@ export default function LeadsView({
   const stageOptions = [
     "Engaged & In Pursuit",
     "Engaged - Longterm",
-    "Qualification Call Booking",
+    "Qualification Calls Scheduled",
     "Teaser Sent",
     "Partner Discussions",
     "Partner Discussions - Longterm",
