@@ -1,6 +1,6 @@
 "use client";
 
-const COLUMNS = [
+const BASE_COLUMNS = [
   { key: "companyName", label: "Company Name" },
   { key: "domain", label: "Domain" },
   { key: "searchName", label: "Search Name" },
@@ -13,7 +13,15 @@ const COLUMNS = [
   { key: "comments", label: "Comments" },
 ];
 
-export default function LeadsTable({ rows, sortBy, sortDir, onSort }) {
+export default function LeadsTable({ rows, sortBy, sortDir, onSort, showPartner = false }) {
+  const COLUMNS = showPartner
+    ? [
+        BASE_COLUMNS[0],
+        { key: "partner", label: "Partner" },
+        ...BASE_COLUMNS.slice(1),
+      ]
+    : BASE_COLUMNS;
+
   const sortArrow = (key) => {
     if (sortBy !== key) return "↕";
     return sortDir === "asc" ? "↑" : "↓";
@@ -41,41 +49,58 @@ export default function LeadsTable({ rows, sortBy, sortDir, onSort }) {
         <tbody>
           {rows.map((row) => (
             <tr key={row.id}>
-              <td className="pinned-col">{row.companyName || "—"}</td>
-              <td>{row.domain || "—"}</td>
-              <td>{row.searchName || "—"}</td>
-              <td>
-                {row.linkedinUrl ? (
-                  <a href={row.linkedinUrl} target="_blank" rel="noreferrer" title={row.linkedinUrl}>
-                    🔗
-                  </a>
-                ) : "—"}
-              </td>
-              <td>{row.tier || "—"}</td>
-              <td>{row.pipelineStage || "—"}</td>
-              <td>
-                <button
-                  type="button"
-                  disabled
-                  title="Editing coming soon."
-                  className={`dnc-pill dnc-disabled ${row.dncStatus === "No Go" ? "no-go" : "go"}`}
-                >
-                  {row.dncStatus || "Go"}
-                </button>
-              </td>
-              <td>{row.dateSentForDnc || "—"}</td>
-              <td>{row.dateConfirmed || "—"}</td>
-              <td className="comment-cell">
-                <input
-                  type="text"
-                  value={row.comments || ""}
-                  readOnly
-                  disabled
-                  placeholder="—"
-                  title="Editing coming soon."
-                  className="comments-disabled-input"
-                />
-              </td>
+              {COLUMNS.map((col) => {
+                if (col.key === "companyName") {
+                  return (
+                    <td key={col.key} className="pinned-col">
+                      {row.companyName || "—"}
+                    </td>
+                  );
+                }
+                if (col.key === "linkedinUrl") {
+                  return (
+                    <td key={col.key}>
+                      {row.linkedinUrl ? (
+                        <a href={row.linkedinUrl} target="_blank" rel="noreferrer" title={row.linkedinUrl}>
+                          🔗
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  );
+                }
+                if (col.key === "dncStatus") {
+                  return (
+                    <td key={col.key}>
+                      <button
+                        type="button"
+                        disabled
+                        title="Editing coming soon."
+                        className={`dnc-pill dnc-disabled ${row.dncStatus === "No Go" ? "no-go" : "go"}`}
+                      >
+                        {row.dncStatus || "Go"}
+                      </button>
+                    </td>
+                  );
+                }
+                if (col.key === "comments") {
+                  return (
+                    <td key={col.key} className="comment-cell">
+                      <input
+                        type="text"
+                        value={row.comments || ""}
+                        readOnly
+                        disabled
+                        placeholder="—"
+                        title="Editing coming soon."
+                        className="comments-disabled-input"
+                      />
+                    </td>
+                  );
+                }
+                return <td key={col.key}>{row[col.key] || "—"}</td>;
+              })}
             </tr>
           ))}
         </tbody>

@@ -1,6 +1,10 @@
 import { verifyToken, resolveDataPartner } from "@/lib/auth";
+import { ADMIN_JWT_PARTNER } from "@/lib/adminSession";
 import { canonicalSearchName } from "@/lib/searchNames";
-import { readPartnerDncSheetRows, hasDncSheetForPartner } from "@/lib/googleSheets";
+import {
+  readPartnerDncSheetRows,
+  hasDncSheetForPartner,
+} from "@/lib/googleSheets";
 import {
   getCached,
   setCached,
@@ -13,6 +17,26 @@ function normalizeDncStatus(raw) {
   const val = String(raw || "").trim().toLowerCase();
   if (val === "no go" || val === "no") return "No Go";
   return "Go";
+}
+
+function mapRowsToLeads(rows, partnerKey) {
+  return (Array.isArray(rows) ? rows : []).map((r, idx) => {
+    const dom = String(r.domain || "").toLowerCase();
+    return {
+      id: `${partnerKey || "row"}-${dom || "row"}-${idx}`,
+      companyName: r.companyName,
+      domain: dom,
+      searchName: r.searchName,
+      linkedinUrl: r.linkedinUrl,
+      tier: r.tier,
+      pipelineStage: "-",
+      dncStatus: normalizeDncStatus(r.dncStatus),
+      dateSentForDnc: r.dateSentForDnc,
+      dateConfirmed: r.dateConfirmed,
+      comments: "",
+      partner: partnerKey || "",
+    };
+  });
 }
 
 export async function GET(request) {
@@ -56,6 +80,11 @@ export async function GET(request) {
     );
   }
   const dataPartner = resolved.dataPartner;
+  const partnerList =
+    Array.isArray(resolved.partnerList) && resolved.partnerList.length > 0
+      ? resolved.partnerList
+      : [dataPartner];
+  const allPartners = Boolean(resolved.allPartners);
 
   const searchFromJwt =
     typeof jwtSearch === "string" && jwtSearch.trim() !== "" ? jwtSearch.trim() : null;
@@ -71,6 +100,9 @@ export async function GET(request) {
     if (forceRefresh) {
       deleteCached(key);
       invalidatePartnerCaches(dataPartner);
+      if (allPartners) {
+        partnerList.forEach((p) => invalidatePartnerCaches(p));
+      }
       console.info("CACHE BUSTED", { scope: "leads", partner: dataPartner, key });
     }
 
@@ -79,58 +111,58 @@ export async function GET(request) {
       return Response.json(cached);
     }
 
-    if (!hasDncSheetForPartner(dataPartner)) {
+    const partnersWithSheets = partnerList.filter((p) => hasDncSheetForPartner(p));
+    if (partnersWithSheets.length === 0) {
       const generatedAt = new Date().toISOString();
       return Response.json({
         partner: label,
         partnerKey: dataPartner,
         isAdmin: resolved.isAdmin,
+        allPartners,
         searchFilter,
         searchLocked,
         searches: [],
         generatedAt,
         leads: [],
         noDncSheet: true,
-        noDncSheetMessage: "No DNC list configured for this partner.",
+        noDncSheetMessage: allPartners
+          ? "No DNC lists configured for any partner."
+          : "No DNC list configured for this partner.",
       });
     }
 
-    const { rows } = await readPartnerDncSheetRows(dataPartner);
+    const sheetResults = await Promise.all(
+      partnersWithSheets.map(async (p) => {
+        const { rows } = await readPartnerDncSheetRows(p);
+        return { partner: p, rows };
+      })
+    );
+
+    const allRows = sheetResults.flatMap(({ partner: p, rows }) =>
+      mapRowsToLeads(rows, p)
+    );
+
     const searches = Array.from(
       new Set(
-        rows
+        allRows
           .map((r) => canonicalSearchName(r.searchName))
           .map((s) => String(s || "").trim())
           .filter(Boolean)
       )
     ).sort();
 
-    const scopedRows = searchFilter
-      ? rows.filter((r) => canonicalSearchName(r.searchName) === canonicalSearchName(searchFilter))
-      : rows;
-
-    const leads = scopedRows.map((r, idx) => {
-      const dom = r.domain.toLowerCase();
-      return {
-        id: `${dom || "row"}-${idx}`,
-        companyName: r.companyName,
-        domain: dom,
-        searchName: r.searchName,
-        linkedinUrl: r.linkedinUrl,
-        tier: r.tier,
-        pipelineStage: "-",
-        dncStatus: normalizeDncStatus(r.dncStatus),
-        dateSentForDnc: r.dateSentForDnc,
-        dateConfirmed: r.dateConfirmed,
-        comments: "",
-      };
-    });
+    const leads = searchFilter
+      ? allRows.filter(
+          (r) => canonicalSearchName(r.searchName) === canonicalSearchName(searchFilter)
+        )
+      : allRows;
 
     const generatedAt = new Date().toISOString();
     const response = {
       partner: label,
       partnerKey: dataPartner,
       isAdmin: resolved.isAdmin,
+      allPartners,
       searchFilter,
       searchLocked,
       searches,

@@ -72,6 +72,7 @@ export default function LeadsView({
         companyName: r.companyName,
         domain: r.domain,
         searchName: r.searchName,
+        partner: r.partner || "",
       }));
       if (payloadLeads.length === 0) {
         if (active) setStageByLeadId({});
@@ -240,7 +241,13 @@ export default function LeadsView({
         ) : ""}
       </div>
 
-      <LeadsTable rows={pageRows} sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+      <LeadsTable
+        rows={pageRows}
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onSort={onSort}
+        showPartner={Boolean(leadsData?.allPartners)}
+      />
 
       <div className="leads-pagination">
         <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={pageSafe <= 1}>
