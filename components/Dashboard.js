@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useLayoutEffect, useRef } from "react";
-import { canonicalSearchName } from "@/lib/searchNames";
 import { ADMIN_JWT_PARTNER } from "@/lib/adminSession";
 import ViewToggle from "./ViewToggle";
 import LeadsView from "./LeadsView";
@@ -84,10 +83,6 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
   const [viewMode, setViewMode] = useState("dashboard");
 
   const searchLocked = Boolean(partnerInfo?.search);
-  const lockedSearchName =
-    typeof partnerInfo?.search === "string" && partnerInfo.search.trim()
-      ? partnerInfo.search.trim()
-      : null;
 
   const isAdmin = partnerInfo?.partner === ADMIN_JWT_PARTNER;
   const partnerOptions = Array.isArray(partnerInfo?.adminPartnerOptions)
@@ -359,10 +354,6 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
             <div className="dash-subtitle">
               {adminSelectedPartner === ADMIN_JWT_PARTNER ? "All partners" : adminSelectedPartner}
             </div>
-          ) : searchLocked && lockedSearchName ? (
-            <div className="dash-subtitle">{canonicalSearchName(lockedSearchName)}</div>
-          ) : !searchLocked && viewMode === "dashboard" && dashboardSearches.length === 1 ? (
-            <div className="dash-subtitle">{dashboardSearches[0]}</div>
           ) : null}
           <ViewToggle value={viewMode} onChange={setViewMode} />
           {viewMode === "dashboard" && !searchLocked && dashboardSearches.length > 1 && (
