@@ -1,12 +1,12 @@
 import { verifyToken, resolveDataPartner } from "@/lib/auth";
 import { canonicalSearchName } from "@/lib/searchNames";
-import { getPartnersDeals, pipelineStageLabel } from "@/lib/hubspot";
+import { getPartnersDeals, getBookedQualMeetingsByDealId, pipelineStageLabel } from "@/lib/hubspot";
 
 function normalizeText(v) {
   return String(v || "").toLowerCase().trim();
 }
 
-function stageForLead(lead, partnerDeals) {
+function stageForLead(lead, partnerDeals, bookedQualMeetings) {
   const leadSearch = canonicalSearchName(lead.searchName);
   const leadCompany = normalizeText(lead.companyName);
   const leadDomain = normalizeText(lead.domain);
@@ -40,8 +40,9 @@ function stageForLead(lead, partnerDeals) {
     const tb = Date.parse(b.properties?.createdate || "");
     return (Number.isFinite(tb) ? tb : 0) - (Number.isFinite(ta) ? ta : 0);
   });
-  const stage = pool[0]?.properties?.dealstage;
-  return pipelineStageLabel(stage) || "-";
+  const deal = pool[0];
+  const stage = deal?.properties?.dealstage;
+  return pipelineStageLabel(stage, deal?.id, bookedQualMeetings) || "-";
 }
 
 export async function POST(request) {
@@ -84,11 +85,17 @@ export async function POST(request) {
     }
 
     const partnerDeals = await getPartnersDeals(partnerList);
+    let bookedQualMeetings = null;
+    try {
+      bookedQualMeetings = await getBookedQualMeetingsByDealId(partnerDeals);
+    } catch (error) {
+      console.warn("Qual meeting lookup failed for lead stages", error?.message);
+    }
     const stageByLeadId = {};
     leads.forEach((lead) => {
       const id = String(lead?.id || "");
       if (!id) return;
-      stageByLeadId[id] = stageForLead(lead, partnerDeals);
+      stageByLeadId[id] = stageForLead(lead, partnerDeals, bookedQualMeetings);
     });
     return Response.json({ stageByLeadId });
   } catch (error) {

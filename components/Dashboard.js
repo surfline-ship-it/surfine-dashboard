@@ -9,12 +9,15 @@ const SESSION_VIEW_KEY = "surfline_view_mode";
 const SESSION_ADMIN_PARTNER_KEY = "surfline_admin_selected_partner";
 
 function PipelineDealDates({ deal }) {
-  const { pipelineEnteredLabel, statusUpdatedLabel } = deal;
-  if (!pipelineEnteredLabel && !statusUpdatedLabel) return null;
+  const { pipelineEnteredLabel, statusUpdatedLabel, qualCallLabel } = deal;
+  if (!pipelineEnteredLabel && !statusUpdatedLabel && !qualCallLabel) return null;
   return (
     <>
       {pipelineEnteredLabel ? (
         <span className="pipeline-deal-date"> · In pipeline {pipelineEnteredLabel}</span>
+      ) : null}
+      {qualCallLabel ? (
+        <span className="pipeline-deal-date"> · Qual call {qualCallLabel}</span>
       ) : null}
       {statusUpdatedLabel ? (
         <span className="pipeline-deal-date"> · Updated {statusUpdatedLabel}</span>
@@ -306,9 +309,6 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
   const dateFilter = dashboardData?.dateFilter || { start: null, end: null };
   const hasDateFilter = Boolean(dateFilter?.start || dateFilter?.end);
   const genDate = new Date(generatedAt);
-  const dateStr = genDate.toLocaleDateString("en-US", {
-    month: "long", day: "numeric", year: "numeric",
-  });
   const dateTimeStr = genDate.toLocaleString("en-US", {
     month: "short",
     day: "numeric",
@@ -379,7 +379,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
           )}
         </div>
         <div className="dash-header-right">
-          <div>Data as of {dateStr}</div>
+          <div>Last refreshed {dateTimeStr}</div>
           {viewMode === "dashboard" ? (
             <>
               <div style={{ marginTop: 8, display: "flex", gap: 6, alignItems: "center", justifyContent: "flex-end" }}>
@@ -496,7 +496,7 @@ export default function Dashboard({ token, partnerInfo, onLogout }) {
       )}
 
       <div className="dash-footer">
-        Data as of {dateTimeStr} (last {viewMode === "leads" ? "Google Sheet + HubSpot" : "HubSpot"} refresh for this view) · Companies deduplicated by domain across all search lists · Prepared by Surfline Capital
+        Last refreshed {dateTimeStr} · Companies deduplicated by domain across all search lists · Prepared by Surfline Capital
         <div className="dash-footer-actions">
           <button
             type="button"

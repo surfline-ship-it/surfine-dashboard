@@ -7,6 +7,7 @@ import {
   getSearchNamesFromContacts,
   computeMetrics,
   hydratePipelineStageConfig,
+  getBookedQualMeetingsByDealId,
 } from "@/lib/hubspot";
 import { ADMIN_JWT_PARTNER } from "@/lib/adminSession";
 import { readDashboardStatsRows, invalidateOutreachSheetCache } from "@/lib/googleSheets";
@@ -359,10 +360,20 @@ export async function GET(request) {
 
     await hydratePipelineStageConfig();
 
+    let bookedQualMeetings = null;
+    try {
+      bookedQualMeetings = await getBookedQualMeetingsByDealId(deals);
+    } catch (error) {
+      console.warn("Qual meeting lookup failed; using prequalification stage", {
+        partner: dataPartner,
+        error: error?.message,
+      });
+    }
+
     const metrics = computeMetrics(contacts, deals, callData, searchFilter, {
       start: startDate,
       end: endDate,
-    }, outreachStats);
+    }, outreachStats, bookedQualMeetings);
 
     return Response.json({
       partner: label,
